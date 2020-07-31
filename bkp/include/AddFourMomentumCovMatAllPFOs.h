@@ -15,6 +15,7 @@
 #include "IMPL/LCCollectionVec.h"
 #include <IMPL/ReconstructedParticleImpl.h>
 #include "lcio.h"
+#include "TMatrixD.h"
 #include <string>
 #include <vector>
 #include <math.h>
@@ -37,7 +38,6 @@ class AddFourMomentumCovMatAllPFOs : public Processor
 		AddFourMomentumCovMatAllPFOs(const AddFourMomentumCovMatAllPFOs&) = delete;
 		AddFourMomentumCovMatAllPFOs& operator=(const AddFourMomentumCovMatAllPFOs&) = delete;
 		virtual void init();
-		virtual void Clear();
 		virtual void processRunHeader();
 		virtual void processEvent( EVENT::LCEvent *pLCEvent );
 		virtual void check( EVENT::LCEvent *pLCEvent );
@@ -51,11 +51,6 @@ class AddFourMomentumCovMatAllPFOs : public Processor
 		int					m_nEvt;
 		int					m_nRunSum;
 		int					m_nEvtSum;
-		float					m_Bfield;
-		double					c;
-		double					mm2m;
-		double					eV2GeV;
-		double					eB;
 
-};
+
 #endif

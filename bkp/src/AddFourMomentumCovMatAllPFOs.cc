@@ -3,6 +3,8 @@
 #include <EVENT/LCCollection.h>
 #include "EVENT/LCCollection.h"
 #include "IMPL/LCCollectionVec.h"
+#include "lcio.h"
+#include <marlin/Global.h>
 #include "EVENT/MCParticle.h"
 #include "EVENT/ReconstructedParticle.h"
 #include <IMPL/ReconstructedParticleImpl.h>
@@ -15,9 +17,12 @@
 #include "TFile.h"
 #include "TH1F.h"
 #include "TTree.h"
+*/
+#include "TTree.h"
 
 using namespace lcio ;
 using namespace marlin ;
+
 
 AddFourMomentumCovMatAllPFOs aAddFourMomentumCovMatAllPFOs;
 
@@ -27,12 +32,7 @@ Processor("AddFourMomentumCovMatAllPFOs"),
 m_nRun(0),
 m_nEvt(0),
 m_nRunSum(0),
-m_nEvtSum(0),
-m_Bfield(0.f),
-c(0.),
-mm2m(0.),
-eV2GeV(0.),
-eB(0.)
+m_nEvtSum(0)
 
 {
 	_description = "AddFourMomentumCovMatAllPFOs calculates Four-Momentum CovMatrix for all PFOs (charged particles, neutral hadrons and photons)";
@@ -54,7 +54,7 @@ eB(0.)
 
 void AddFourMomentumCovMatAllPFOs::init()
 {
-
+/*
 	streamlog_out(DEBUG) << "   init called  " << std::endl;
 	m_Bfield = MarlinUtil::getBzAtOrigin();
 	printParameters();
@@ -63,31 +63,26 @@ void AddFourMomentumCovMatAllPFOs::init()
 	m_nEvt = 0 ;
 	m_nRunSum = 0;
 	m_nEvtSum = 0;
+	this->Clear();
 	c = 2.99792458e8;
 	mm2m = 1e-3;
 	eV2GeV = 1e-9;
 	eB = m_Bfield * c * mm2m * eV2GeV;
-//	this->Clear();
-
-}
-
-void AddFourMomentumCovMatAllPFOs::Clear()
-{
-
+*/
 }
 
 void AddFourMomentumCovMatAllPFOs::processRunHeader()
 {
-
+/*
 	m_nRun = 0;
 	m_nEvt = 0;
 	++m_nRunSum;
-
+*/
 }
 
 void AddFourMomentumCovMatAllPFOs::processEvent( EVENT::LCEvent *pLCEvent )
 {
-
+/*
 	m_nRun = pLCEvent->getRunNumber();
 	m_nEvt = pLCEvent->getEventNumber();
 	++m_nEvtSum;
@@ -98,19 +93,24 @@ void AddFourMomentumCovMatAllPFOs::processEvent( EVENT::LCEvent *pLCEvent )
         try
         {
 		inputPfoCollection = pLCEvent->getCollection(m_inputPfoCollection);
-		int n_PFO = inputPfoCollection->getNumberOfElements();
+		n_PFO = inputPfoCollection->getNumberOfElements();
 		LCCollectionVec *m_col_outputPfo = new LCCollectionVec(LCIO::RECONSTRUCTEDPARTICLE);
         }
         catch(DataNotAvailableException &e)
         {
           streamlog_out(MESSAGE) << "Input collection not found in event " << m_nEvt << std::endl;
         }
+*/
+}
+
+void AddFourMomentumCovMatAllPFOs::Clear()
+{
 
 }
 
 void AddFourMomentumCovMatAllPFOs::check(EVENT::LCEvent *pLCEvent)
 {
-
+/*
 	LCCollection *inputPfoCollection{};
 	LCCollection *outputPfoCollection{};
 	try
@@ -125,9 +125,8 @@ void AddFourMomentumCovMatAllPFOs::check(EVENT::LCEvent *pLCEvent)
         {
           streamlog_out(MESSAGE) << "Input/Output collection not found in event " << m_nEvt << std::endl;
         }
-
+*/
 }
-
 void AddFourMomentumCovMatAllPFOs::end()
 {
 
