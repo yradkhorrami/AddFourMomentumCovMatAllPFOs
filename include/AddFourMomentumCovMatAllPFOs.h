@@ -52,7 +52,8 @@ class AddFourMomentumCovMatAllPFOs : public Processor
 		virtual void Clear();
 		virtual void processRunHeader();
 		virtual void processEvent( EVENT::LCEvent *pLCEvent );
-		std::vector<float> UpdateNeutralPFOCovMat( TLorentzVector pfoFourMomentum , std::vector<float> clusterDirectionError , float clusterEnergyError );
+		std::vector<float> UpdateNeutralPFOCovMatDirError( TLorentzVector pfoFourMomentum , std::vector<float> clusterDirectionError , float clusterEnergyError );
+		std::vector<float> UpdateNeutralPFOCovMatPosError( TVector3 pfoPosition , float pfoEnergy , float pfoMass , std::vector<float> clusterPositionError , float clusterEnergyError );
 		std::vector<float> UpdateChargedPFOCovMat( EVENT::Track* MyTrack , float trackMass );
 		double getTrackMass( EVENT::LCEvent *pLCEvent, EVENT::Track* inputTrk );
 		virtual void check( EVENT::LCEvent *pLCEvent );
@@ -66,6 +67,7 @@ class AddFourMomentumCovMatAllPFOs : public Processor
 		std::string				m_MarlinTrkTracksKAON{};
 		std::string				m_MarlinTrkTracksPROTON{};
 
+		bool					m_useClusterPositionError = true;
 		int					m_nRun;
 		int					m_nEvt;
 		int					m_nRunSum;

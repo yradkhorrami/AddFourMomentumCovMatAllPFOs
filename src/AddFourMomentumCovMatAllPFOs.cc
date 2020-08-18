@@ -115,6 +115,12 @@ h_SigmaE2(NULL)
 					std::string("CorrectedPfoCollection")
 				);
 
+	registerProcessorParameter(	"useClusterPositionError",
+					"true: use cluster position error for CovMat, false: use cluster direction error for CovMat",
+					m_useClusterPositionError,
+					bool(true)
+				);
+
 	registerProcessorParameter(	"RootFile",
 	                                "Name of the output root file",
 					m_rootFile,
@@ -261,6 +267,7 @@ void AddFourMomentumCovMatAllPFOs::processEvent( EVENT::LCEvent *pLCEvent )
 			streamlog_out(DEBUG) << "Number of clusters assigned to PFO : " << nClusterspfo << std::endl;
 			h_nTracks_PFOCharge->Fill( pfoCharge , nTrackspfo );
 			TLorentzVector pfoFourMomentum(0.,0.,0.,0.);
+			TVector3 pfoPosition(0.,0.,0.);
 			float pfoMass		= inputPFO->getMass();
 			std::vector<float> outputCovMatrix( 10, 0.0 );
 			std::vector<float> inputCovMatrix = inputPFO->getCovMatrix();//( 10, 0.0 );
@@ -278,9 +285,18 @@ void AddFourMomentumCovMatAllPFOs::processEvent( EVENT::LCEvent *pLCEvent )
 					float pfoPz		= pfoMomentumMag * cos( clusterTheta );
 					TVector3 pfoMomentum( pfoPx , pfoPy , pfoPz );
 					pfoFourMomentum		= TLorentzVector( pfoMomentum , clusterE );
+					pfoPosition		= TVector3( ( inputPFO->getClusters()[0] )->getPosition()[0] , ( inputPFO->getClusters()[0] )->getPosition()[1] , ( inputPFO->getClusters()[0] )->getPosition()[2] );
 					std::vector<float> clusterDirectionError = ( inputPFO->getClusters()[0] )->getDirectionError();
+					std::vector<float> clusterPositionError = ( inputPFO->getClusters()[0] )->getPositionError();
 					float clusterEnergyError= ( inputPFO->getClusters()[0] )->getEnergyError();
-					outputCovMatrix		= this->UpdateNeutralPFOCovMat( pfoFourMomentum , clusterDirectionError , clusterEnergyError );
+					if ( m_useClusterPositionError )
+					{
+						outputCovMatrix		= this->UpdateNeutralPFOCovMatPosError( pfoPosition , clusterE , pfoMass , clusterPositionError , clusterEnergyError );
+					}
+					else
+					{
+						outputCovMatrix		= this->UpdateNeutralPFOCovMatDirError( pfoFourMomentum , clusterDirectionError , clusterEnergyError );
+					}
 					streamlog_out(DEBUG) << "PFO is neutral (without track), CovMatrix is set using cluster information" << std::endl;
 					h_SigmaPx2nT->Fill( outputCovMatrix[0] , inputCovMatrix[0] );
 					h_SigmaPxPynT->Fill( outputCovMatrix[1] , inputCovMatrix[1] );
@@ -422,7 +438,7 @@ void AddFourMomentumCovMatAllPFOs::processEvent( EVENT::LCEvent *pLCEvent )
 
 }
 
-std::vector<float> AddFourMomentumCovMatAllPFOs::UpdateNeutralPFOCovMat( TLorentzVector pfoFourMomentum , std::vector<float> clusterDirectionError , float clusterEnergyError )
+std::vector<float> AddFourMomentumCovMatAllPFOs::UpdateNeutralPFOCovMatDirError( TLorentzVector pfoFourMomentum , std::vector<float> clusterDirectionError , float clusterEnergyError )
 {
 
 //	Obtain covariance matrix on (px,py,pz,E) from the
@@ -448,7 +464,7 @@ std::vector<float> AddFourMomentumCovMatAllPFOs::UpdateNeutralPFOCovMat( TLorent
 //
 //
 //
-//	Order in the covariance matrix on helix parameters:
+//	CovMatrix elements in terms of cluster direction error and cluster energy error:
 //
 //			Theta.Theta	Theta.phi	Theta.E
 //
@@ -475,7 +491,7 @@ std::vector<float> AddFourMomentumCovMatAllPFOs::UpdateNeutralPFOCovMat( TLorent
 	float SigmaTheta2	=	clusterDirectionError[ 0 ];
 	float SigmaThetaSigmaPhi=	clusterDirectionError[ 1 ];
 	float SigmaPhi2		=	clusterDirectionError[ 2 ];
-	float SigmaE2		=	clusterEnergyError;
+	float SigmaE2		=	pow( clusterEnergyError , 2 );
 
 	streamlog_out(DEBUG) << "Cluster information obtained" << std::endl;
 
@@ -529,6 +545,132 @@ std::vector<float> AddFourMomentumCovMatAllPFOs::UpdateNeutralPFOCovMat( TLorent
 }
 
 
+std::vector<float> AddFourMomentumCovMatAllPFOs::UpdateNeutralPFOCovMatPosError( TVector3 pfoPosition , float pfoEnergy , float pfoMass , std::vector<float> clusterPositionError , float clusterEnergyError )
+{
+
+//	Obtain covariance matrix on (px,py,pz,E) from the
+//	covariance matrix on cluster parameters.
+//
+//	define the jacobian as the 4x4 matrix:
+//
+//
+//
+//			Dpx/Dx			Dpy/Dx			Dpz/Dx			DE/Dx
+//
+//			Dpx/Dy			Dpy/Dy			Dpz/Dy			DE/Dy
+//	J =
+//			Dpx/Dz			Dpy/Dz			Dpz/Dz			DE/Dz
+//
+//			Dpx/DE			Dpy/DE			Dpz/DE			DE/DE
+//
+//
+//
+//
+//
+//			P.(r2-x2)/r3		P.x.y/r3		P.x.z/r3		0
+//
+//			P.y.x/r3		P.(r2-y2)/r3		P.y.z/r3		0
+//	J =
+//			P.z.x/r3		P.z.y/r3		P.(r2-z2)/r3		0
+//
+//			(E/P).(x/r)		(E/P).(y/r)		(E/P).(z/r)		1
+//
+//
+//
+//
+//	CovMatrix elements in terms of cluster position error and cluster energy error:
+//
+//			x.x		x.y		x.z		x.E
+//
+//			y.x		y.y		y.z		y.E
+//	Cov =
+//			z.x		z.y		z.z		z.E
+//
+//			E.x		E.y		E.z		E.E
+//
+//
+//
+
+	const int rows			= 4; // n rows jacobian
+	const int columns		= 4; // n columns jacobian
+	const int kspace_time_dim	= 4;
+
+	TMatrixD covMatrixMomenta(kspace_time_dim,kspace_time_dim);
+	std::vector<float> covP;
+
+	float pfoX		=	pfoPosition.X();
+	float pfoY		=	pfoPosition.Y();
+	float pfoZ		=	pfoPosition.Z();
+	float pfoR		=	std::sqrt( pow( pfoX , 2 ) + pow( pfoY , 2 ) + pow( pfoZ , 2 ) );
+	float pfoX2		=	pow( pfoX , 2 );
+	float pfoY2		=	pow( pfoY , 2 );
+	float pfoZ2		=	pow( pfoZ , 2 );
+	float pfoR2		=	pow( pfoR , 2 );
+	float pfoR3		=	pow( pfoR , 3 );
+	float pfoE		=	pfoEnergy;
+	float pfoP		=	std::sqrt( pow( pfoEnergy , 2 ) - pow( pfoMass , 2 ) );
+	float SigmaX2		=	clusterPositionError[ 0 ];
+	float SigmaXY		=	clusterPositionError[ 1 ];
+	float SigmaY2		=	clusterPositionError[ 2 ];
+	float SigmaXZ		=	clusterPositionError[ 3 ];
+	float SigmaYZ		=	clusterPositionError[ 4 ];
+	float SigmaZ2		=	clusterPositionError[ 5 ];
+	float SigmaE2		=	pow( clusterEnergyError , 2 );
+
+	streamlog_out(DEBUG) << "Cluster information obtained" << std::endl;
+
+//	Define array with jacobian matrix elements by rows
+	double jacobian_by_rows[rows*columns] =
+			{
+				pfoP * ( pfoR2 - pfoX2 ) / pfoR3	,	pfoP * pfoX * pfoY / pfoR3		,	pfoP * pfoX * pfoZ / pfoR3		,	0	,
+				pfoP * pfoY * pfoX / pfoR3		,	pfoP * ( pfoR2 - pfoY2 ) / pfoR3	,	pfoP * pfoY * pfoZ / pfoR3		,	0	,
+				pfoP * pfoZ * pfoX / pfoR3		,	pfoP * pfoZ * pfoY / pfoR3		,	pfoP * ( pfoR2 - pfoZ2 ) / pfoR3	,	0	,
+				pfoE * pfoX / ( pfoP * pfoR )		,	pfoE * pfoY / ( pfoP * pfoR )		,	pfoE * pfoZ / ( pfoP * pfoR )		,	1
+			};
+
+	streamlog_out(DEBUG) << "Jacobian array formed by rows" << std::endl;
+
+//	construct the Jacobian using previous array ("F" if filling by columns, "C", if filling by rows, $ROOTSYS/math/matrix/src/TMatrixT.cxx)
+	TMatrixD jacobian(rows,columns, jacobian_by_rows, "C");
+	streamlog_out(DEBUG) << "Jacobian array converted to Jacobian matrix" << std::endl;
+
+//	cluster covariance matrix by rows
+	double cluster_cov_matrix_by_rows[rows*rows] =
+			{
+				SigmaX2		,	SigmaXY		,	SigmaXZ		,	0	,
+				SigmaXY		,	SigmaY2		,	SigmaYZ		,	0	,
+				SigmaXZ		,	SigmaYZ		,	SigmaZ2		,	0	,
+				0		,	0		,	0		,	SigmaE2	
+			};
+	streamlog_out(DEBUG) << "cluster covariance matrix array formed by rows" << std::endl;
+
+	TMatrixD covMatrix_cluster(rows,rows, cluster_cov_matrix_by_rows, "C");
+	streamlog_out(DEBUG) << "cluster covariance matrix array converted to cluster covariance matrix matrix" << std::endl;
+
+	covMatrixMomenta.Mult( TMatrixD( jacobian ,
+					TMatrixD::kTransposeMult ,
+					covMatrix_cluster) ,
+					jacobian
+					);
+	streamlog_out(DEBUG) << "cluster covariance matrix array converted to FourMomentumCovariance matrix" << std::endl;
+
+	covP.push_back( covMatrixMomenta(0,0) ); // x-x
+	covP.push_back( covMatrixMomenta(1,0) ); // y-x
+	covP.push_back( covMatrixMomenta(1,1) ); // y-y
+	covP.push_back( covMatrixMomenta(2,0) ); // z-x
+	covP.push_back( covMatrixMomenta(2,1) ); // z-y
+	covP.push_back( covMatrixMomenta(2,2) ); // z-z
+	covP.push_back( covMatrixMomenta(3,0) ); // e-x
+	covP.push_back( covMatrixMomenta(3,1) ); // e-y
+	covP.push_back( covMatrixMomenta(3,2) ); // e-z
+	covP.push_back( covMatrixMomenta(3,3) ); // e-e
+	streamlog_out(DEBUG) << "FourMomentumCovarianceMatrix Filled succesfully" << std::endl;
+	
+	return covP;
+
+}
+
+
 std::vector<float> AddFourMomentumCovMatAllPFOs::UpdateChargedPFOCovMat( EVENT::Track* MyTrack , float trackMass )
 {
 
@@ -551,7 +693,7 @@ std::vector<float> AddFourMomentumCovMatAllPFOs::UpdateChargedPFOCovMat( EVENT::
 //
 //	J =		-Py			Px			0			0
 //
-//			-Px/Omega		-Py/Omega		-Px/Omega		-P2/E.Omega
+//			-Px/Omega		-Py/Omega		-Pz/Omega		-P2/E.Omega
 //
 //
 //

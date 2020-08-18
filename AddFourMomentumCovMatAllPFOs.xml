@@ -38,13 +38,14 @@
 		<constant name="DetectorModel" value="ILD_l5_o1_v02" />
 		<constant name="CompactFile" value="${lcgeo_DIR}/ILD/compact/${DetectorModel}/${DetectorModel}.xml" />
 		<constant name="OutputBaseName" value="outputs/AddFourMomentumCovMatAllPFOs" />
-		<constant name="OutputRootFile" value="${OutputBaseName}.root" />
+		<constant name="OutputRootFile" value="${OutputBaseName}" />
 	</constants>
 
 	<execute>
 		<processor name="InitDD4hep" condition="" />
 		<processor name="MyAIDAProcessor"/>
-		<processor name="MyAddFourMomentumCovMatAllPFOs"/>
+		<processor name="MyAddFourMomentumCovMatAllPFOs_posError"/>
+		<processor name="MyAddFourMomentumCovMatAllPFOs_dirError"/>
 		<processor name="MyLCIOOutputProcessor"/>
 	</execute>
 
@@ -90,14 +91,30 @@
 		<!--parameter name="Verbosity" type="string">DEBUG </parameter-->
 	</processor>
 
-	<processor name="MyAddFourMomentumCovMatAllPFOs" type="AddFourMomentumCovMatAllPFOs">
+	<processor name="MyAddFourMomentumCovMatAllPFOs_posError" type="AddFourMomentumCovMatAllPFOs">
 		<!--AddFourMomentumCovMatAllPFOs sets CovMatrix of all PFOs-->
 		<!--Names of input ReconstructedParticle collection-->
 		<parameter name="inputPfoCollection" type="string" lcioInType="ReconstructedParticle">PandoraPFOs</parameter>
 		<!--Names of output ReconstructedParticle collection-->
-		<parameter name="outputPfoCollection" type="string" lcioOutType="ReconstructedParticle">PandoraPFOsCovMat</parameter>
+		<parameter name="outputPfoCollection" type="string" lcioOutType="ReconstructedParticle">PandoraPFOsCovMat_posError</parameter>
+		<!--Whether use cluster position error or cluster direction error for calculating CovMatrix true: cluster position error / false: cluster direction error-->
+		<parameter name="useClusterPositionError" type="bool">true</parameter>
 		<!--Name of the output root file-->
-		<parameter name="RootFile" type="string">${OutputRootFile}</parameter>
+		<parameter name="RootFile" type="string">${OutputRootFile}_posError.root</parameter>
+		<!--verbosity level of this processor ("DEBUG0-4,MESSAGE0-4,WARNING0-4,ERROR0-4,SILENT")-->
+		<parameter name="Verbosity" type="string">DEBUG</parameter>
+	</processor>
+
+	<processor name="MyAddFourMomentumCovMatAllPFOs_dirError" type="AddFourMomentumCovMatAllPFOs">
+		<!--AddFourMomentumCovMatAllPFOs sets CovMatrix of all PFOs-->
+		<!--Names of input ReconstructedParticle collection-->
+		<parameter name="inputPfoCollection" type="string" lcioInType="ReconstructedParticle">PandoraPFOs</parameter>
+		<!--Names of output ReconstructedParticle collection-->
+		<parameter name="outputPfoCollection" type="string" lcioOutType="ReconstructedParticle">PandoraPFOsCovMat_dirError</parameter>
+		<!--Whether use cluster position error or cluster direction error for calculating CovMatrix true: cluster position error / false: cluster direction error-->
+		<parameter name="useClusterPositionError" type="bool">false</parameter>
+		<!--Name of the output root file-->
+		<parameter name="RootFile" type="string">${OutputRootFile}_dirError.root</parameter>
 		<!--verbosity level of this processor ("DEBUG0-4,MESSAGE0-4,WARNING0-4,ERROR0-4,SILENT")-->
 		<parameter name="Verbosity" type="string">DEBUG</parameter>
 	</processor>
