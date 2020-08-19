@@ -267,7 +267,7 @@ void AddFourMomentumCovMatAllPFOs::processEvent( EVENT::LCEvent *pLCEvent )
 			streamlog_out(DEBUG) << "Number of clusters assigned to PFO : " << nClusterspfo << std::endl;
 			h_nTracks_PFOCharge->Fill( pfoCharge , nTrackspfo );
 			TLorentzVector pfoFourMomentum(0.,0.,0.,0.);
-			TVector3 pfoPosition(0.,0.,0.);
+			TVector3 clusterPosition(0.,0.,0.);
 			float pfoMass		= inputPFO->getMass();
 			std::vector<float> outputCovMatrix( 10, 0.0 );
 			std::vector<float> inputCovMatrix = inputPFO->getCovMatrix();//( 10, 0.0 );
@@ -279,19 +279,19 @@ void AddFourMomentumCovMatAllPFOs::processEvent( EVENT::LCEvent *pLCEvent )
 					float clusterE		= ( inputPFO->getClusters()[0] )->getEnergy();
 					float clusterTheta	= ( inputPFO->getClusters()[0] )->getITheta();
 					float clusterPhi	= ( inputPFO->getClusters()[0] )->getIPhi();
+					clusterPosition		= TVector3( ( inputPFO->getClusters()[0] )->getPosition()[0] , ( inputPFO->getClusters()[0] )->getPosition()[1] , ( inputPFO->getClusters()[0] )->getPosition()[2] );
 					float pfoMomentumMag	= std::sqrt( pow( clusterE , 2 ) - pow( pfoMass , 2 ) );
 					float pfoPx		= pfoMomentumMag * sin( clusterTheta ) * cos( clusterPhi );
 					float pfoPy		= pfoMomentumMag * sin( clusterTheta ) * sin( clusterPhi );
 					float pfoPz		= pfoMomentumMag * cos( clusterTheta );
 					TVector3 pfoMomentum( pfoPx , pfoPy , pfoPz );
 					pfoFourMomentum		= TLorentzVector( pfoMomentum , clusterE );
-					pfoPosition		= TVector3( ( inputPFO->getClusters()[0] )->getPosition()[0] , ( inputPFO->getClusters()[0] )->getPosition()[1] , ( inputPFO->getClusters()[0] )->getPosition()[2] );
 					std::vector<float> clusterDirectionError = ( inputPFO->getClusters()[0] )->getDirectionError();
 					std::vector<float> clusterPositionError = ( inputPFO->getClusters()[0] )->getPositionError();
 					float clusterEnergyError= ( inputPFO->getClusters()[0] )->getEnergyError();
 					if ( m_useClusterPositionError )
 					{
-						outputCovMatrix		= this->UpdateNeutralPFOCovMatPosError( pfoPosition , clusterE , pfoMass , clusterPositionError , clusterEnergyError );
+						outputCovMatrix		= this->UpdateNeutralPFOCovMatPosError( clusterPosition , clusterE , pfoMass , clusterPositionError , clusterEnergyError );
 					}
 					else
 					{
@@ -545,7 +545,7 @@ std::vector<float> AddFourMomentumCovMatAllPFOs::UpdateNeutralPFOCovMatDirError(
 }
 
 
-std::vector<float> AddFourMomentumCovMatAllPFOs::UpdateNeutralPFOCovMatPosError( TVector3 pfoPosition , float pfoEnergy , float pfoMass , std::vector<float> clusterPositionError , float clusterEnergyError )
+std::vector<float> AddFourMomentumCovMatAllPFOs::UpdateNeutralPFOCovMatPosError( TVector3 clusterPosition , float clusterEnergy , float pfoMass , std::vector<float> clusterPositionError , float clusterEnergyError )
 {
 
 //	Obtain covariance matrix on (px,py,pz,E) from the
@@ -567,11 +567,11 @@ std::vector<float> AddFourMomentumCovMatAllPFOs::UpdateNeutralPFOCovMatPosError(
 //
 //
 //
-//			P.(r2-x2)/r3		P.x.y/r3		P.x.z/r3		0
+//			P.(r2-x2)/r3		-P.x.y/r3		-P.x.z/r3		0
 //
-//			P.y.x/r3		P.(r2-y2)/r3		P.y.z/r3		0
+//			-P.y.x/r3		P.(r2-y2)/r3		-P.y.z/r3		0
 //	J =
-//			P.z.x/r3		P.z.y/r3		P.(r2-z2)/r3		0
+//			-P.z.x/r3		-P.z.y/r3		P.(r2-z2)/r3		0
 //
 //			(E/P).(x/r)		(E/P).(y/r)		(E/P).(z/r)		1
 //
@@ -598,17 +598,17 @@ std::vector<float> AddFourMomentumCovMatAllPFOs::UpdateNeutralPFOCovMatPosError(
 	TMatrixD covMatrixMomenta(kspace_time_dim,kspace_time_dim);
 	std::vector<float> covP;
 
-	float pfoX		=	pfoPosition.X();
-	float pfoY		=	pfoPosition.Y();
-	float pfoZ		=	pfoPosition.Z();
+	float pfoX		=	clusterPosition.X();
+	float pfoY		=	clusterPosition.Y();
+	float pfoZ		=	clusterPosition.Z();
 	float pfoR		=	std::sqrt( pow( pfoX , 2 ) + pow( pfoY , 2 ) + pow( pfoZ , 2 ) );
 	float pfoX2		=	pow( pfoX , 2 );
 	float pfoY2		=	pow( pfoY , 2 );
 	float pfoZ2		=	pow( pfoZ , 2 );
 	float pfoR2		=	pow( pfoR , 2 );
 	float pfoR3		=	pow( pfoR , 3 );
-	float pfoE		=	pfoEnergy;
-	float pfoP		=	std::sqrt( pow( pfoEnergy , 2 ) - pow( pfoMass , 2 ) );
+	float pfoE		=	clusterEnergy;
+	float pfoP		=	std::sqrt( pow( pfoE , 2 ) - pow( pfoMass , 2 ) );
 	float SigmaX2		=	clusterPositionError[ 0 ];
 	float SigmaXY		=	clusterPositionError[ 1 ];
 	float SigmaY2		=	clusterPositionError[ 2 ];
@@ -622,9 +622,9 @@ std::vector<float> AddFourMomentumCovMatAllPFOs::UpdateNeutralPFOCovMatPosError(
 //	Define array with jacobian matrix elements by rows
 	double jacobian_by_rows[rows*columns] =
 			{
-				pfoP * ( pfoR2 - pfoX2 ) / pfoR3	,	pfoP * pfoX * pfoY / pfoR3		,	pfoP * pfoX * pfoZ / pfoR3		,	0	,
-				pfoP * pfoY * pfoX / pfoR3		,	pfoP * ( pfoR2 - pfoY2 ) / pfoR3	,	pfoP * pfoY * pfoZ / pfoR3		,	0	,
-				pfoP * pfoZ * pfoX / pfoR3		,	pfoP * pfoZ * pfoY / pfoR3		,	pfoP * ( pfoR2 - pfoZ2 ) / pfoR3	,	0	,
+				pfoP * ( pfoR2 - pfoX2 ) / pfoR3	,	-pfoP * pfoX * pfoY / pfoR3		,	-pfoP * pfoX * pfoZ / pfoR3		,	0	,
+				-pfoP * pfoY * pfoX / pfoR3		,	pfoP * ( pfoR2 - pfoY2 ) / pfoR3	,	-pfoP * pfoY * pfoZ / pfoR3		,	0	,
+				-pfoP * pfoZ * pfoX / pfoR3		,	-pfoP * pfoZ * pfoY / pfoR3		,	pfoP * ( pfoR2 - pfoZ2 ) / pfoR3	,	0	,
 				pfoE * pfoX / ( pfoP * pfoR )		,	pfoE * pfoY / ( pfoP * pfoR )		,	pfoE * pfoZ / ( pfoP * pfoR )		,	1
 			};
 
