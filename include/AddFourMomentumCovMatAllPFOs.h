@@ -87,6 +87,7 @@ class AddFourMomentumCovMatAllPFOs : public Processor
 	        TTree					*m_pTTree;
 		TH2I					*h_nTracks_PFOCharge{};
 		TH2I					*h_nClusters_nTracks{};
+		TH2F					*h_clusterE_pfoE{};
 		TH2F					*h_SigmaPx2nT{};
 		TH2F					*h_SigmaPxPynT{};
 		TH2F					*h_SigmaPy2nT{};

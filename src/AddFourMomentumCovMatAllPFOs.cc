@@ -46,6 +46,7 @@ m_pTFile(NULL),
 m_pTTree(NULL),
 h_nTracks_PFOCharge(NULL),
 h_nClusters_nTracks(NULL),
+h_clusterE_pfoE(NULL),
 h_SigmaPx2nT(NULL),
 h_SigmaPxPynT(NULL),
 h_SigmaPy2nT(NULL),
@@ -156,69 +157,71 @@ void AddFourMomentumCovMatAllPFOs::init()
 	m_pTFile = new TFile(m_rootFile.c_str(), "recreate");
 	m_pTTree = new TTree("CovMatAllPFOsTree", "CovMatAllPFOsTree");
 	m_pTTree->SetDirectory(m_pTFile);
-	h_nTracks_PFOCharge = new TH2I("h_nTracks_PFOCharge", "All PFOs; charge of PFO; nTracks", 5, -2.5, 2.5, 5, -0.5, 4.5);
+	h_nTracks_PFOCharge = new TH2I("All PFOs", "; charge of PFO; n_{Tracks}", 5, -2.5, 2.5, 5, -0.5, 4.5);
 	h_nTracks_PFOCharge->SetDirectory(m_pTFile);
-	h_nClusters_nTracks = new TH2I("h_nClusters_nTracks", "Neutral PFOs; nClusters; nTracks", 5, -0.5, 4.5, 5, -0.5, 4.5);
+	h_nClusters_nTracks = new TH2I("Neutral PFOs", "; n_{Clusters}; n_{Tracks}", 5, -0.5, 4.5, 5, -0.5, 4.5);
 	h_nClusters_nTracks->SetDirectory(m_pTFile);
-	h_SigmaPx2nT = new TH2F("h_SigmaPx2nT", "Neutral PFOs (nTracks = 0); #sigma_{p_{x}}^{2} (new PFO); #sigma_{p_{x}}^{2} (old PFO)", 400, 0.0, 0.1, 400, 0.0, 0.1);
+	h_clusterE_pfoE = new TH2F("Neutral PFOs (n_{Tracks} = 0)", "; E_{Cluster} [GeV]; E_{PFO} [GeV]", 100, 0.0, 100., 100, 0.0, 100.);
+	h_clusterE_pfoE->SetDirectory(m_pTFile);
+	h_SigmaPx2nT = new TH2F("Neutral PFOs (n_{Tracks} = 0)", "; #sigma_{p_{x}}^{2} (new PFO) [GeV^{2}]; #sigma_{p_{x}}^{2} (old PFO) [GeV^{2}]", 400, 0.0, 0.1, 400, 0.0, 0.1);
 	h_SigmaPx2nT->SetDirectory(m_pTFile);
-	h_SigmaPxPynT = new TH2F("h_SigmaPxPynT", "Neutral PFOs (nTracks = 0); #sigma_{p_{x}p_{y}} (new PFO); #sigma_{p_{x}p_{y}} (old PFO)", 400, -0.1, 0.1, 400, -0.1, 0.1);
+	h_SigmaPxPynT = new TH2F("Neutral PFOs (n_{Tracks} = 0)", "; #sigma_{p_{x}p_{y}} (new PFO) [GeV^{2}]; #sigma_{p_{x}p_{y}} (old PFO) [GeV^{2}]", 400, -0.1, 0.1, 400, -0.1, 0.1);
 	h_SigmaPxPynT->SetDirectory(m_pTFile);
-	h_SigmaPy2nT = new TH2F("h_SigmaPy2nT", "Neutral PFOs (nTracks = 0); #sigma_{p_{y}}^{2} (new PFO); #sigma_{p_{y}}^{2} (old PFO)", 400, 0.0, 0.1, 400, 0.0, 0.1);
+	h_SigmaPy2nT = new TH2F("Neutral PFOs (n_{Tracks} = 0)", "; #sigma_{p_{y}}^{2} (new PFO) [GeV^{2}]; #sigma_{p_{y}}^{2} (old PFO) [GeV^{2}]", 400, 0.0, 0.1, 400, 0.0, 0.1);
 	h_SigmaPy2nT->SetDirectory(m_pTFile);
-	h_SigmaPxPznT = new TH2F("h_SigmaPxPznT", "Neutral PFOs (nTracks = 0); #sigma_{p_{x}p_{z}} (new PFO); #sigma_{p_{x}p_{z}} (old PFO)", 400, -0.1, 0.1, 400, -0.1, 0.1);
+	h_SigmaPxPznT = new TH2F("Neutral PFOs (n_{Tracks} = 0)", "; #sigma_{p_{x}p_{z}} (new PFO) [GeV^{2}]; #sigma_{p_{x}p_{z}} (old PFO) [GeV^{2}]", 400, -0.1, 0.1, 400, -0.1, 0.1);
 	h_SigmaPxPznT->SetDirectory(m_pTFile);
-	h_SigmaPyPznT = new TH2F("h_SigmaPyPznT", "Neutral PFOs (nTracks = 0); #sigma_{p_{y}p_{z}} (new PFO); #sigma_{p_{y}p_{z}} (old PFO)", 400, -0.1, 0.1, 400, -0.1, 0.1);
+	h_SigmaPyPznT = new TH2F("Neutral PFOs (n_{Tracks} = 0)", "; #sigma_{p_{y}p_{z}} (new PFO) [GeV^{2}]; #sigma_{p_{y}p_{z}} (old PFO) [GeV^{2}]", 400, -0.1, 0.1, 400, -0.1, 0.1);
 	h_SigmaPyPznT->SetDirectory(m_pTFile);
-	h_SigmaPz2nT = new TH2F("h_SigmaPz2nT", "Neutral PFOs (nTracks = 0); #sigma_{p_{z}}^{2} (new PFO); #sigma_{p_{z}}^{2} (old PFO)", 400, 0.0, 0.1, 400, 0.0, 0.1);
+	h_SigmaPz2nT = new TH2F("Neutral PFOs (n_{Tracks} = 0)", "; #sigma_{p_{z}}^{2} (new PFO) [GeV^{2}]; #sigma_{p_{z}}^{2} (old PFO) [GeV^{2}]", 400, 0.0, 0.1, 400, 0.0, 0.1);
 	h_SigmaPz2nT->SetDirectory(m_pTFile);
-	h_SigmaPxEnT = new TH2F("h_SigmaPxEnT", "Neutral PFOs (nTracks = 0); #sigma_{p_{x}E} (new PFO); #sigma_{p_{x}E} (old PFO)", 400, -0.1, 0.1, 400, -0.1, 0.1);
+	h_SigmaPxEnT = new TH2F("Neutral PFOs (n_{Tracks} = 0)", "; #sigma_{p_{x}E} (new PFO) [GeV^{2}]; #sigma_{p_{x}E} (old PFO) [GeV^{2}]", 400, -0.1, 0.1, 400, -0.1, 0.1);
 	h_SigmaPxEnT->SetDirectory(m_pTFile);
-	h_SigmaPyEnT = new TH2F("h_SigmaPyEnT", "Neutral PFOs (nTracks = 0); #sigma_{p_{y}E} (new PFO); #sigma_{p_{y}E} (old PFO)", 400, -0.1, 0.1, 400, -0.1, 0.1);
+	h_SigmaPyEnT = new TH2F("Neutral PFOs (n_{Tracks} = 0)", "; #sigma_{p_{y}E} (new PFO) [GeV^{2}]; #sigma_{p_{y}E} (old PFO) [GeV^{2}]", 400, -0.1, 0.1, 400, -0.1, 0.1);
 	h_SigmaPyEnT->SetDirectory(m_pTFile);
-	h_SigmaPzEnT = new TH2F("h_SigmaPzEnT", "Neutral PFOs (nTracks = 0); #sigma_{p_{z}E} (new PFO); #sigma_{p_{z}E} (old PFO)", 400, -0.1, 0.1, 400, -0.1, 0.1);
+	h_SigmaPzEnT = new TH2F("Neutral PFOs (n_{Tracks} = 0)", "; #sigma_{p_{z}E} (new PFO) [GeV^{2}]; #sigma_{p_{z}E} (old PFO) [GeV^{2}]", 400, -0.1, 0.1, 400, -0.1, 0.1);
 	h_SigmaPzEnT->SetDirectory(m_pTFile);
-	h_SigmaE2nT = new TH2F("h_SigmaE2nT", "Neutral PFOs (nTracks = 0); #sigma_{E}^{2} (new PFO); #sigma_{E}^{2} (old PFO)", 400, 0.0, 0.6, 400, 0.0, 0.6);
+	h_SigmaE2nT = new TH2F("Neutral PFOs (n_{Tracks} = 0)", "; #sigma_{E}^{2} (new PFO) [GeV^{2}]; #sigma_{E}^{2} (old PFO) [GeV^{2}]", 400, 0.0, 0.6, 400, 0.0, 0.6);
 	h_SigmaE2nT->SetDirectory(m_pTFile);
-	h_SigmaPx2T = new TH2F("h_SigmaPx2T", "Neutral PFOs (nTracks = 2); #sigma_{p_{x}}^{2} (new PFO); #sigma_{p_{x}}^{2} (old PFO)", 400, 0.0, 0.1, 400, 0.0, 0.1);
+	h_SigmaPx2T = new TH2F("Neutral PFOs (n_{Tracks} = 2)", "; #sigma_{p_{x}}^{2} (new PFO) [GeV^{2}]; #sigma_{p_{x}}^{2} (old PFO) [GeV^{2}]", 400, 0.0, 0.1, 400, 0.0, 0.1);
 	h_SigmaPx2T->SetDirectory(m_pTFile);
-	h_SigmaPxPyT = new TH2F("h_SigmaPxPyT", "Neutral PFOs (nTracks = 2); #sigma_{p_{x}p_{y}} (new PFO); #sigma_{p_{x}p_{y}} (old PFO)", 400, -0.1, 0.1, 400, -0.1, 0.1);
+	h_SigmaPxPyT = new TH2F("Neutral PFOs (n_{Tracks} = 2)", "; #sigma_{p_{x}p_{y}} (new PFO) [GeV^{2}]; #sigma_{p_{x}p_{y}} (old PFO) [GeV^{2}]", 400, -0.1, 0.1, 400, -0.1, 0.1);
 	h_SigmaPxPyT->SetDirectory(m_pTFile);
-	h_SigmaPy2T = new TH2F("h_SigmaPy2T", "Neutral PFOs (nTracks = 2); #sigma_{p_{y}}^{2} (new PFO); #sigma_{p_{y}}^{2} (old PFO)", 400, 0.0, 0.1, 400, 0.0, 0.1);
+	h_SigmaPy2T = new TH2F("Neutral PFOs (n_{Tracks} = 2)", "; #sigma_{p_{y}}^{2} (new PFO) [GeV^{2}]; #sigma_{p_{y}}^{2} (old PFO) [GeV^{2}]", 400, 0.0, 0.1, 400, 0.0, 0.1);
 	h_SigmaPy2T->SetDirectory(m_pTFile);
-	h_SigmaPxPzT = new TH2F("h_SigmaPxPzT", "Neutral PFOs (nTracks = 2); #sigma_{p_{x}p_{z}} (new PFO); #sigma_{p_{x}p_{z}} (old PFO)", 400, -0.1, 0.1, 400, -0.1, 0.1);
+	h_SigmaPxPzT = new TH2F("Neutral PFOs (n_{Tracks} = 2)", "; #sigma_{p_{x}p_{z}} (new PFO) [GeV^{2}]; #sigma_{p_{x}p_{z}} (old PFO) [GeV^{2}]", 400, -0.1, 0.1, 400, -0.1, 0.1);
 	h_SigmaPxPzT->SetDirectory(m_pTFile);
-	h_SigmaPyPzT = new TH2F("h_SigmaPyPzT", "Neutral PFOs (nTracks = 2); #sigma_{p_{y}p_{z}} (new PFO); #sigma_{p_{y}p_{z}} (old PFO)", 400, -0.1, 0.1, 400, -0.1, 0.1);
+	h_SigmaPyPzT = new TH2F("Neutral PFOs (n_{Tracks} = 2)", "; #sigma_{p_{y}p_{z}} (new PFO) [GeV^{2}]; #sigma_{p_{y}p_{z}} (old PFO) [GeV^{2}]", 400, -0.1, 0.1, 400, -0.1, 0.1);
 	h_SigmaPyPzT->SetDirectory(m_pTFile);
-	h_SigmaPz2T = new TH2F("h_SigmaPz2T", "Neutral PFOs (nTracks = 2); #sigma_{p_{z}}^{2} (new PFO); #sigma_{p_{z}}^{2} (old PFO)", 400, 0.0, 0.1, 400, 0.0, 0.1);
+	h_SigmaPz2T = new TH2F("Neutral PFOs (n_{Tracks} = 2)", "; #sigma_{p_{z}}^{2} (new PFO) [GeV^{2}]; #sigma_{p_{z}}^{2} (old PFO) [GeV^{2}]", 400, 0.0, 0.1, 400, 0.0, 0.1);
 	h_SigmaPz2T->SetDirectory(m_pTFile);
-	h_SigmaPxET = new TH2F("h_SigmaPxET", "Neutral PFOs (nTracks = 2); #sigma_{p_{x}E} (new PFO); #sigma_{p_{x}E} (old PFO)", 400, -0.1, 0.1, 400, -0.1, 0.1);
+	h_SigmaPxET = new TH2F("Neutral PFOs (n_{Tracks} = 2)", "; #sigma_{p_{x}E} (new PFO) [GeV^{2}]; #sigma_{p_{x}E} (old PFO) [GeV^{2}]", 400, -0.1, 0.1, 400, -0.1, 0.1);
 	h_SigmaPxET->SetDirectory(m_pTFile);
-	h_SigmaPyET = new TH2F("h_SigmaPyET", "Neutral PFOs (nTracks = 2); #sigma_{p_{y}E} (new PFO); #sigma_{p_{y}E} (old PFO)", 400, -0.1, 0.1, 400, -0.1, 0.1);
+	h_SigmaPyET = new TH2F("Neutral PFOs (n_{Tracks} = 2)", "; #sigma_{p_{y}E} (new PFO) [GeV^{2}]; #sigma_{p_{y}E} (old PFO) [GeV^{2}]", 400, -0.1, 0.1, 400, -0.1, 0.1);
 	h_SigmaPyET->SetDirectory(m_pTFile);
-	h_SigmaPzET = new TH2F("h_SigmaPzET", "Neutral PFOs (nTracks = 2); #sigma_{p_{z}E} (new PFO); #sigma_{p_{z}E} (old PFO)", 400, -0.1, 0.1, 400, -0.1, 0.1);
+	h_SigmaPzET = new TH2F("Neutral PFOs (n_{Tracks} = 2)", "; #sigma_{p_{z}E} (new PFO) [GeV^{2}]; #sigma_{p_{z}E} (old PFO) [GeV^{2}]", 400, -0.1, 0.1, 400, -0.1, 0.1);
 	h_SigmaPzET->SetDirectory(m_pTFile);
-	h_SigmaE2T = new TH2F("h_SigmaE2T", "Neutral PFOs (nTracks = 2); #sigma_{E}^{2} (new PFO); #sigma_{E}^{2} (old PFO)", 400, 0.0, 0.6, 400, 0.0, 0.6);
+	h_SigmaE2T = new TH2F("Neutral PFOs (n_{Tracks} = 2)", "; #sigma_{E}^{2} (new PFO) [GeV^{2}]; #sigma_{E}^{2} (old PFO) [GeV^{2}]", 400, 0.0, 0.6, 400, 0.0, 0.6);
 	h_SigmaE2T->SetDirectory(m_pTFile);
-	h_SigmaPx2 = new TH2F("h_SigmaPx2", "Charged PFOs; #sigma_{p_{x}}^{2} (new PFO); #sigma_{p_{x}}^{2} (old PFO)", 400, 0.0, 0.1, 400, 0.0, 0.1);
+	h_SigmaPx2 = new TH2F("Charged PFOs", "; #sigma_{p_{x}}^{2} (new PFO) [GeV^{2}]; #sigma_{p_{x}}^{2} (old PFO) [GeV^{2}]", 400, 0.0, 0.1, 400, 0.0, 0.1);
 	h_SigmaPx2->SetDirectory(m_pTFile);
-	h_SigmaPxPy = new TH2F("h_SigmaPxPy", "Charged PFOs; #sigma_{p_{x}p_{y}} (new PFO); #sigma_{p_{x}p_{y}} (old PFO)", 400, -0.1, 0.1, 400, -0.1, 0.1);
+	h_SigmaPxPy = new TH2F("Charged PFOs", "; #sigma_{p_{x}p_{y}} (new PFO) [GeV^{2}]; #sigma_{p_{x}p_{y}} (old PFO) [GeV^{2}]", 400, -0.1, 0.1, 400, -0.1, 0.1);
 	h_SigmaPxPy->SetDirectory(m_pTFile);
-	h_SigmaPy2 = new TH2F("h_SigmaPy2", "Charged PFOs; #sigma_{p_{y}}^{2} (new PFO); #sigma_{p_{y}}^{2} (old PFO)", 400, 0.0, 0.1, 400, 0.0, 0.1);
+	h_SigmaPy2 = new TH2F("Charged PFOs", "; #sigma_{p_{y}}^{2} (new PFO) [GeV^{2}]; #sigma_{p_{y}}^{2} (old PFO) [GeV^{2}]", 400, 0.0, 0.1, 400, 0.0, 0.1);
 	h_SigmaPy2->SetDirectory(m_pTFile);
-	h_SigmaPxPz = new TH2F("h_SigmaPxPz", "Charged PFOs; #sigma_{p_{x}p_{z}} (new PFO); #sigma_{p_{x}p_{z}} (old PFO)", 400, -0.1, 0.1, 400, -0.1, 0.1);
+	h_SigmaPxPz = new TH2F("Charged PFOs", "; #sigma_{p_{x}p_{z}} (new PFO) [GeV^{2}]; #sigma_{p_{x}p_{z}} (old PFO) [GeV^{2}]", 400, -0.1, 0.1, 400, -0.1, 0.1);
 	h_SigmaPxPz->SetDirectory(m_pTFile);
-	h_SigmaPyPz = new TH2F("h_SigmaPyPz", "Charged PFOs; #sigma_{p_{y}p_{z}} (new PFO); #sigma_{p_{y}p_{z}} (old PFO)", 400, -0.1, 0.1, 400, -0.1, 0.1);
+	h_SigmaPyPz = new TH2F("Charged PFOs", "; #sigma_{p_{y}p_{z}} (new PFO) [GeV^{2}]; #sigma_{p_{y}p_{z}} (old PFO) [GeV^{2}]", 400, -0.1, 0.1, 400, -0.1, 0.1);
 	h_SigmaPyPz->SetDirectory(m_pTFile);
-	h_SigmaPz2 = new TH2F("h_SigmaPz2", "Charged PFOs; #sigma_{p_{z}}^{2} (new PFO); #sigma_{p_{z}}^{2} (old PFO)", 400, 0.0, 0.1, 400, 0.0, 0.1);
+	h_SigmaPz2 = new TH2F("Charged PFOs", "; #sigma_{p_{z}}^{2} (new PFO) [GeV^{2}]; #sigma_{p_{z}}^{2} (old PFO) [GeV^{2}]", 400, 0.0, 0.1, 400, 0.0, 0.1);
 	h_SigmaPz2->SetDirectory(m_pTFile);
-	h_SigmaPxE = new TH2F("h_SigmaPxE", "Charged PFOs; #sigma_{p_{x}E} (new PFO); #sigma_{p_{x}E} (old PFO)", 400, -0.1, 0.1, 400, -0.1, 0.1);
+	h_SigmaPxE = new TH2F("Charged PFOs", "; #sigma_{p_{x}E} (new PFO) [GeV^{2}]; #sigma_{p_{x}E} (old PFO) [GeV^{2}]", 400, -0.1, 0.1, 400, -0.1, 0.1);
 	h_SigmaPxE->SetDirectory(m_pTFile);
-	h_SigmaPyE = new TH2F("h_SigmaPyE", "Charged PFOs; #sigma_{p_{y}E} (new PFO); #sigma_{p_{y}E} (old PFO)", 400, -0.1, 0.1, 400, -0.1, 0.1);
+	h_SigmaPyE = new TH2F("Charged PFOs", "; #sigma_{p_{y}E} (new PFO) [GeV^{2}]; #sigma_{p_{y}E} (old PFO) [GeV^{2}]", 400, -0.1, 0.1, 400, -0.1, 0.1);
 	h_SigmaPyE->SetDirectory(m_pTFile);
-	h_SigmaPzE = new TH2F("h_SigmaPzE", "Charged PFOs; #sigma_{p_{z}E} (new PFO); #sigma_{p_{z}E} (old PFO)", 400, -0.1, 0.1, 400, -0.1, 0.1);
+	h_SigmaPzE = new TH2F("Charged PFOs", "; #sigma_{p_{z}E} (new PFO) [GeV^{2}]; #sigma_{p_{z}E} (old PFO) [GeV^{2}]", 400, -0.1, 0.1, 400, -0.1, 0.1);
 	h_SigmaPzE->SetDirectory(m_pTFile);
-	h_SigmaE2 = new TH2F("h_SigmaE2", "Charged PFOs; #sigma_{E}^{2} (new PFO); #sigma_{E}^{2} (old PFO)", 400, 0.0, 0.6, 400, 0.0, 0.6);
+	h_SigmaE2 = new TH2F("Charged PFOs", "; #sigma_{E}^{2} (new PFO) [GeV^{2}]; #sigma_{E}^{2} (old PFO) [GeV^{2}]", 400, 0.0, 0.6, 400, 0.0, 0.6);
 	h_SigmaE2->SetDirectory(m_pTFile);
 
 }
@@ -276,20 +279,28 @@ void AddFourMomentumCovMatAllPFOs::processEvent( EVENT::LCEvent *pLCEvent )
 				h_nClusters_nTracks->Fill( nClusterspfo , nTrackspfo );
 				if ( nTrackspfo == 0 )
 				{
-					float pfoEnergy		= inputPFO->getEnergy();
-//					float clusterE		= ( inputPFO->getClusters()[0] )->getEnergy();
-					float clusterTheta	= ( inputPFO->getClusters()[0] )->getITheta();
-					float clusterPhi	= ( inputPFO->getClusters()[0] )->getIPhi();
-					clusterPosition		= TVector3( ( inputPFO->getClusters()[0] )->getPosition()[0] , ( inputPFO->getClusters()[0] )->getPosition()[1] , ( inputPFO->getClusters()[0] )->getPosition()[2] );
-					float pfoMomentumMag	= std::sqrt( pow( pfoEnergy , 2 ) - pow( pfoMass , 2 ) );
-					float pfoPx		= pfoMomentumMag * sin( clusterTheta ) * cos( clusterPhi );
-					float pfoPy		= pfoMomentumMag * sin( clusterTheta ) * sin( clusterPhi );
-					float pfoPz		= pfoMomentumMag * cos( clusterTheta );
+//					float pfoEnergy		= inputPFO->getEnergy();
+					float clusterEnergy	= ( inputPFO->getClusters()[0] )->getEnergy();
+//					float clusterTheta	= ( inputPFO->getClusters()[0] )->getITheta();
+//					float clusterPhi	= ( inputPFO->getClusters()[0] )->getIPhi();
+					float clusterX		= ( inputPFO->getClusters()[0] )->getPosition()[0];
+					float clusterY		= ( inputPFO->getClusters()[0] )->getPosition()[1];
+					float clusterZ		= ( inputPFO->getClusters()[0] )->getPosition()[2];
+					clusterPosition		= TVector3( clusterX , clusterY , clusterZ );
+					float clusterDistance	= sqrt( pow( clusterX , 2 ) + pow( clusterY , 2 ) + pow( clusterZ , 2 ) );
+//					float pfoMomentumMag	= std::sqrt( pow( pfoEnergy , 2 ) - pow( pfoMass , 2 ) );
+					float pfoMomentumMag	= clusterEnergy;
+					float pfoPx		= pfoMomentumMag * clusterX / clusterDistance;
+					float pfoPy		= pfoMomentumMag * clusterY / clusterDistance;
+					float pfoPz		= pfoMomentumMag * clusterZ / clusterDistance;
 					TVector3 pfoMomentum( pfoPx , pfoPy , pfoPz );
+					float pfoEnergy		= std::sqrt( pow( pfoMomentumMag , 2 ) + pow( pfoMass , 2 ) );
 					pfoFourMomentum		= TLorentzVector( pfoMomentum , pfoEnergy );
 					std::vector<float> clusterDirectionError = ( inputPFO->getClusters()[0] )->getDirectionError();
 					std::vector<float> clusterPositionError = ( inputPFO->getClusters()[0] )->getPositionError();
 					float clusterEnergyError= ( inputPFO->getClusters()[0] )->getEnergyError();
+					streamlog_out(DEBUG) << "cluster / PFO Energy : " << clusterEnergy << " / " << pfoEnergy << std::endl;
+					h_clusterE_pfoE->Fill( clusterEnergy , pfoEnergy );
 					if ( m_useClusterPositionError )
 					{
 						outputCovMatrix		= this->UpdateNeutralPFOCovMatPosError( clusterPosition , pfoEnergy , pfoMass , clusterPositionError , clusterEnergyError );
@@ -363,7 +374,7 @@ void AddFourMomentumCovMatAllPFOs::processEvent( EVENT::LCEvent *pLCEvent )
 						track_mass = pion_mass;
 						streamlog_out(MESSAGE) << "Couldn't Find track mass, default mass (pion mass) is set" << std::endl;
 					}
-					streamlog_out(DEBUG) << "PFO is neutral (with two tracks), CovMatrix is set using cluster information" << std::endl;
+					streamlog_out(DEBUG) << "PFO is charged (with " << nTrackspfo << " tracks), CovMatrix is set using track information" << std::endl;
 					double track_omega	= mytrack->getOmega();
 					double track_tanL	= mytrack->getTanLambda();
 					double track_phi	= mytrack->getPhi();
@@ -398,6 +409,8 @@ void AddFourMomentumCovMatAllPFOs::processEvent( EVENT::LCEvent *pLCEvent )
 			outputPFO->setType(inputPFO->getType());
 			outputPFO->setMomentum(outputPFOMomentum);
 			outputPFO->setEnergy(outputPFOEnergy);
+//			outputPFO->setMomentum(inputPFO->getMomentum());
+//			outputPFO->setEnergy(inputPFO->getEnergy());
 			outputPFO->setCovMatrix(outputCovMatrix);
 			outputPFO->setMass(inputPFO->getMass());
 			outputPFO->setCharge(inputPFO->getCharge());
@@ -609,6 +622,8 @@ std::vector<float> AddFourMomentumCovMatAllPFOs::UpdateNeutralPFOCovMatPosError(
 	float pfoR2		=	pow( pfoR , 2 );
 	float pfoR3		=	pow( pfoR , 3 );
 	float pfoE		=	pfoEnergy;
+//	float pfoP		=	clusterEnergy;
+//	float pfoE		=	std::sqrt( pow( pfoP , 2 ) + pow( pfoMass , 2 ) );
 	float pfoP		=	std::sqrt( pow( pfoE , 2 ) - pow( pfoMass , 2 ) );
 	float SigmaX2		=	clusterPositionError[ 0 ];
 	float SigmaXY		=	clusterPositionError[ 1 ];
@@ -864,6 +879,7 @@ void AddFourMomentumCovMatAllPFOs::end()
 	m_pTTree->Write();
 	h_nTracks_PFOCharge->Write();
 	h_nClusters_nTracks->Write();
+	h_clusterE_pfoE->Write();
 	h_SigmaPx2nT->Write();
 	h_SigmaPxPynT->Write();
 	h_SigmaPy2nT->Write();
