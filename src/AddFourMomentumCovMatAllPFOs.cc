@@ -279,7 +279,6 @@ void AddFourMomentumCovMatAllPFOs::processEvent( EVENT::LCEvent *pLCEvent )
 				h_nClusters_nTracks->Fill( nClusterspfo , nTrackspfo );
 				if ( nTrackspfo == 0 )
 				{
-//					float pfoEnergy		= inputPFO->getEnergy();
 					float clusterEnergy	= ( inputPFO->getClusters()[0] )->getEnergy();
 //					float clusterTheta	= ( inputPFO->getClusters()[0] )->getITheta();
 //					float clusterPhi	= ( inputPFO->getClusters()[0] )->getIPhi();
@@ -294,7 +293,9 @@ void AddFourMomentumCovMatAllPFOs::processEvent( EVENT::LCEvent *pLCEvent )
 					float pfoPy		= pfoMomentumMag * clusterY / clusterDistance;
 					float pfoPz		= pfoMomentumMag * clusterZ / clusterDistance;
 					TVector3 pfoMomentum( pfoPx , pfoPy , pfoPz );
-					float pfoEnergy		= std::sqrt( pow( pfoMomentumMag , 2 ) + pow( pfoMass , 2 ) );
+					float pfoEnergy		= inputPFO->getEnergy();
+					pfoMass			= 0.0;
+//					float pfoEnergy		= std::sqrt( pow( pfoMomentumMag , 2 ) + pow( pfoMass , 2 ) );
 					pfoFourMomentum		= TLorentzVector( pfoMomentum , pfoEnergy );
 					std::vector<float> clusterDirectionError = ( inputPFO->getClusters()[0] )->getDirectionError();
 					std::vector<float> clusterPositionError = ( inputPFO->getClusters()[0] )->getPositionError();
