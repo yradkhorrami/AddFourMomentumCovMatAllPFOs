@@ -334,7 +334,7 @@ void AddFourMomentumCovMatAllPFOs::processEvent( EVENT::LCEvent *pLCEvent )
 							track_mass = pion_mass;
 							streamlog_out(MESSAGE) << "Couldn't Find track mass, default mass (pion mass) is set" << std::endl;
 						}
-						streamlog_out(DEBUG) << "PFO is neutral (with two tracks), CovMatrix is set using cluster information" << std::endl;
+						streamlog_out(DEBUG) << "PFO is neutral (with two tracks), CovMatrix is set using track information" << std::endl;
 						double track_omega	= mytrack->getOmega();
 						double track_tanL	= mytrack->getTanLambda();
 						double track_phi	= mytrack->getPhi();
