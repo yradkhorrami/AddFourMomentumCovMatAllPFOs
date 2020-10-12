@@ -44,22 +44,26 @@
 	<execute>
 		<processor name="InitDD4hep" condition="" />
 		<processor name="MyAIDAProcessor"/>
-		<processor name="MyAddFourMomentumCovMatAllPFOs_posError"/>
-		<processor name="MyAddFourMomentumCovMatAllPFOs_dirError"/>
-		<processor name="MyLCIOOutputProcessor"/>
+		<processor name="MyAddFourMomentumCovMatAllPFOs_massless"/>
+		<processor name="MyAddFourMomentumCovMatAllPFOs_massive"/>
+		<!--processor name="MyLCIOOutputProcessor"/-->
 	</execute>
 
 	<global>
 		<parameter name="LCIOInputFiles">
-/pnfs/desy.de/ilc/prod/ilc/mc-opt/ild/dst-merged/250-SetA/test/ILD_l5_o1_v02_nobg/v02-01/rv02-01.sv02-01.mILD_l5_o1_v02_nobg.E250-SetA.I401006.Pe2e2h.eL.pR.n000.d_dstm_14717_1.slcio
-/pnfs/desy.de/ilc/prod/ilc/mc-opt/ild/dst-merged/250-SetA/test/ILD_l5_o1_v02_nobg/v02-01/rv02-01.sv02-01.mILD_l5_o1_v02_nobg.E250-SetA.I401006.Pe2e2h.eL.pR.n000.d_dstm_14717_2.slcio
-/pnfs/desy.de/ilc/prod/ilc/mc-opt/ild/dst-merged/250-SetA/test/ILD_l5_o1_v02_nobg/v02-01/rv02-01.sv02-01.mILD_l5_o1_v02_nobg.E250-SetA.I401006.Pe2e2h.eL.pR.n000.d_dstm_14717_3.slcio
-/pnfs/desy.de/ilc/prod/ilc/mc-opt/ild/dst-merged/250-SetA/test/ILD_l5_o1_v02_nobg/v02-01/rv02-01.sv02-01.mILD_l5_o1_v02_nobg.E250-SetA.I401006.Pe2e2h.eL.pR.n000.d_dstm_14717_4.slcio
+/nfs/dust/ilc/user/radkhory/PhysicsAnalysis/Hmumu/DST/rv02-01-02.sv02-01-02.mILD_l5_o1_v02_nobg.E250-SetA.I401010.Pe2e2h.eL.pR.n000.d_dstm_14763.slcio
+<!--
+/nfs/dust/ilc/user/radkhory/PhysicsAnalysis/Hmumu/DST/rv02-01.sv02-01.mILD_l5_o1_v02_nobg.E250-SetA.I401006.Pe2e2h.eL.pR.n000.d_dstm.slcio
 /pnfs/desy.de/ilc/prod/ilc/mc-opt/ild/dst-merged/250-SetA/test/ILD_l5_o1_v02_nobg/v02-01/rv02-01.sv02-01.mILD_l5_o1_v02_nobg.E250-SetA.I401005.Pe2e2h.eL.pR.n000.d_dstm_14707_0.slcio
 /pnfs/desy.de/ilc/prod/ilc/mc-opt/ild/dst-merged/250-SetA/test/ILD_l5_o1_v02_nobg/v02-01/rv02-01.sv02-01.mILD_l5_o1_v02_nobg.E250-SetA.I401005.Pe2e2h.eL.pR.n000.d_dstm_14707_1.slcio
 /pnfs/desy.de/ilc/prod/ilc/mc-opt/ild/dst-merged/250-SetA/test/ILD_l5_o1_v02_nobg/v02-01/rv02-01.sv02-01.mILD_l5_o1_v02_nobg.E250-SetA.I401005.Pe2e2h.eL.pR.n000.d_dstm_14707_2.slcio
 /pnfs/desy.de/ilc/prod/ilc/mc-opt/ild/dst-merged/250-SetA/test/ILD_l5_o1_v02_nobg/v02-01/rv02-01.sv02-01.mILD_l5_o1_v02_nobg.E250-SetA.I401005.Pe2e2h.eL.pR.n000.d_dstm_14707_3.slcio
 /pnfs/desy.de/ilc/prod/ilc/mc-opt/ild/dst-merged/250-SetA/test/ILD_l5_o1_v02_nobg/v02-01/rv02-01.sv02-01.mILD_l5_o1_v02_nobg.E250-SetA.I401006.Pe2e2h.eL.pR.n000.d_dstm_14717_0.slcio
+/pnfs/desy.de/ilc/prod/ilc/mc-opt/ild/dst-merged/250-SetA/test/ILD_l5_o1_v02_nobg/v02-01/rv02-01.sv02-01.mILD_l5_o1_v02_nobg.E250-SetA.I401006.Pe2e2h.eL.pR.n000.d_dstm_14717_1.slcio
+/pnfs/desy.de/ilc/prod/ilc/mc-opt/ild/dst-merged/250-SetA/test/ILD_l5_o1_v02_nobg/v02-01/rv02-01.sv02-01.mILD_l5_o1_v02_nobg.E250-SetA.I401006.Pe2e2h.eL.pR.n000.d_dstm_14717_2.slcio
+/pnfs/desy.de/ilc/prod/ilc/mc-opt/ild/dst-merged/250-SetA/test/ILD_l5_o1_v02_nobg/v02-01/rv02-01.sv02-01.mILD_l5_o1_v02_nobg.E250-SetA.I401006.Pe2e2h.eL.pR.n000.d_dstm_14717_3.slcio
+/pnfs/desy.de/ilc/prod/ilc/mc-opt/ild/dst-merged/250-SetA/test/ILD_l5_o1_v02_nobg/v02-01/rv02-01.sv02-01.mILD_l5_o1_v02_nobg.E250-SetA.I401006.Pe2e2h.eL.pR.n000.d_dstm_14717_4.slcio
+-->
 </parameter>
 		<!-- limit the number of processed records (run+evt): -->
 		<parameter name="MaxRecordNumber" value="0" />
@@ -91,34 +95,93 @@
 		<!--parameter name="Verbosity" type="string">DEBUG </parameter-->
 	</processor>
 
-	<processor name="MyAddFourMomentumCovMatAllPFOs_posError" type="AddFourMomentumCovMatAllPFOs">
+	<processor name="MyAddFourMomentumCovMatAllPFOs_massless" type="AddFourMomentumCovMatAllPFOs">
 		<!--AddFourMomentumCovMatAllPFOs sets CovMatrix of all PFOs-->
 		<!--Names of input ReconstructedParticle collection-->
 		<parameter name="inputPfoCollection" type="string" lcioInType="ReconstructedParticle">PandoraPFOs</parameter>
 		<!--Names of output ReconstructedParticle collection-->
-		<parameter name="outputPfoCollection" type="string" lcioOutType="ReconstructedParticle">PandoraPFOsCovMat_posError</parameter>
+		<parameter name="outputPfoCollection" type="string" lcioOutType="ReconstructedParticle">PandoraPFOsCovMat_posError_masslessNH_pos</parameter>
 		<!--Whether use cluster position error or cluster direction error for calculating CovMatrix true: cluster position error / false: cluster direction error-->
 		<parameter name="useClusterPositionError" type="bool">true</parameter>
+		<!--Whether update the CovMat for normal neutral (without track); true: update CovMat , false: do not update-->
+		<parameter name="updateNormalNeutrals" type="bool">true</parameter>
+		<!--Whether update the CovMat for neutral with track; true: update CovMat , false: do not update-->
+		<parameter name="updateNeutrals_wTrack" type="bool">true</parameter>
+		<!--Whether update the CovMat for charged PFOs; true: update CovMat , false: do not update-->
+		<parameter name="updateCharged" type="bool">true</parameter>
+		<!--Whether assume Neutral PFOs massive or messless; true: massive , false: massless-->
+		<parameter name="AssumeNeutralPFOMassive" type="bool">false</parameter>
 		<!--Name of the output root file-->
-		<parameter name="RootFile" type="string">${OutputRootFile}_posError.root</parameter>
+		<parameter name="RootFile" type="string">${OutputRootFile}_masslessNH_pos.root</parameter>
 		<!--verbosity level of this processor ("DEBUG0-4,MESSAGE0-4,WARNING0-4,ERROR0-4,SILENT")-->
-		<parameter name="Verbosity" type="string">DEBUG</parameter>
+		<parameter name="Verbosity" type="string">MESSAGE</parameter>
 	</processor>
 
-	<processor name="MyAddFourMomentumCovMatAllPFOs_dirError" type="AddFourMomentumCovMatAllPFOs">
+	<processor name="MyAddFourMomentumCovMatAllPFOs_massless_dir" type="AddFourMomentumCovMatAllPFOs">
 		<!--AddFourMomentumCovMatAllPFOs sets CovMatrix of all PFOs-->
 		<!--Names of input ReconstructedParticle collection-->
 		<parameter name="inputPfoCollection" type="string" lcioInType="ReconstructedParticle">PandoraPFOs</parameter>
 		<!--Names of output ReconstructedParticle collection-->
-		<parameter name="outputPfoCollection" type="string" lcioOutType="ReconstructedParticle">PandoraPFOsCovMat_dirError</parameter>
+		<parameter name="outputPfoCollection" type="string" lcioOutType="ReconstructedParticle">PandoraPFOsCovMat_posError_masslessNH_dir</parameter>
 		<!--Whether use cluster position error or cluster direction error for calculating CovMatrix true: cluster position error / false: cluster direction error-->
 		<parameter name="useClusterPositionError" type="bool">false</parameter>
+		<!--Whether update the CovMat for normal neutral (without track); true: update CovMat , false: do not update-->
+		<parameter name="updateNormalNeutrals" type="bool">true</parameter>
+		<!--Whether update the CovMat for neutral with track; true: update CovMat , false: do not update-->
+		<parameter name="updateNeutrals_wTrack" type="bool">true</parameter>
+		<!--Whether update the CovMat for charged PFOs; true: update CovMat , false: do not update-->
+		<parameter name="updateCharged" type="bool">true</parameter>
+		<!--Whether assume Neutral PFOs massive or messless; true: massive , false: massless-->
+		<parameter name="AssumeNeutralPFOMassive" type="bool">false</parameter>
 		<!--Name of the output root file-->
-		<parameter name="RootFile" type="string">${OutputRootFile}_dirError.root</parameter>
+		<parameter name="RootFile" type="string">${OutputRootFile}_masslessNH_dir.root</parameter>
 		<!--verbosity level of this processor ("DEBUG0-4,MESSAGE0-4,WARNING0-4,ERROR0-4,SILENT")-->
-		<parameter name="Verbosity" type="string">DEBUG</parameter>
+		<parameter name="Verbosity" type="string">MESSAGE</parameter>
 	</processor>
 
+	<processor name="MyAddFourMomentumCovMatAllPFOs_massive" type="AddFourMomentumCovMatAllPFOs">
+		<!--AddFourMomentumCovMatAllPFOs sets CovMatrix of all PFOs-->
+		<!--Names of input ReconstructedParticle collection-->
+		<parameter name="inputPfoCollection" type="string" lcioInType="ReconstructedParticle">PandoraPFOs</parameter>
+		<!--Names of output ReconstructedParticle collection-->
+		<parameter name="outputPfoCollection" type="string" lcioOutType="ReconstructedParticle">PandoraPFOsCovMat_posError_massiveNH_pos</parameter>
+		<!--Whether use cluster position error or cluster direction error for calculating CovMatrix true: cluster position error / false: cluster direction error-->
+		<parameter name="useClusterPositionError" type="bool">true</parameter>
+		<!--Whether update the CovMat for normal neutral (without track); true: update CovMat , false: do not update-->
+		<parameter name="updateNormalNeutrals" type="bool">true</parameter>
+		<!--Whether update the CovMat for neutral with track; true: update CovMat , false: do not update-->
+		<parameter name="updateNeutrals_wTrack" type="bool">true</parameter>
+		<!--Whether update the CovMat for charged PFOs; true: update CovMat , false: do not update-->
+		<parameter name="updateCharged" type="bool">true</parameter>
+		<!--Whether assume Neutral PFOs massive or messless; true: massive , false: massless-->
+		<parameter name="AssumeNeutralPFOMassive" type="bool">true</parameter>
+		<!--Name of the output root file-->
+		<parameter name="RootFile" type="string">${OutputRootFile}_massiveNH_pos.root</parameter>
+		<!--verbosity level of this processor ("DEBUG0-4,MESSAGE0-4,WARNING0-4,ERROR0-4,SILENT")-->
+		<parameter name="Verbosity" type="string">MESSAGE</parameter>
+	</processor>
+
+	<processor name="MyAddFourMomentumCovMatAllPFOs_massive_dir" type="AddFourMomentumCovMatAllPFOs">
+		<!--AddFourMomentumCovMatAllPFOs sets CovMatrix of all PFOs-->
+		<!--Names of input ReconstructedParticle collection-->
+		<parameter name="inputPfoCollection" type="string" lcioInType="ReconstructedParticle">PandoraPFOs</parameter>
+		<!--Names of output ReconstructedParticle collection-->
+		<parameter name="outputPfoCollection" type="string" lcioOutType="ReconstructedParticle">PandoraPFOsCovMat_posError_massiveNH_dir</parameter>
+		<!--Whether use cluster position error or cluster direction error for calculating CovMatrix true: cluster position error / false: cluster direction error-->
+		<parameter name="useClusterPositionError" type="bool">false</parameter>
+		<!--Whether update the CovMat for normal neutral (without track); true: update CovMat , false: do not update-->
+		<parameter name="updateNormalNeutrals" type="bool">true</parameter>
+		<!--Whether update the CovMat for neutral with track; true: update CovMat , false: do not update-->
+		<parameter name="updateNeutrals_wTrack" type="bool">true</parameter>
+		<!--Whether update the CovMat for charged PFOs; true: update CovMat , false: do not update-->
+		<parameter name="updateCharged" type="bool">true</parameter>
+		<!--Whether assume Neutral PFOs massive or messless; true: massive , false: massless-->
+		<parameter name="AssumeNeutralPFOMassive" type="bool">true</parameter>
+		<!--Name of the output root file-->
+		<parameter name="RootFile" type="string">${OutputRootFile}_massiveNH_dir.root</parameter>
+		<!--verbosity level of this processor ("DEBUG0-4,MESSAGE0-4,WARNING0-4,ERROR0-4,SILENT")-->
+		<parameter name="Verbosity" type="string">MESSAGE</parameter>
+	</processor>
 
 	<processor name="MyLCIOOutputProcessor" type="LCIOOutputProcessor">
 		<!--Writes the current event to the specified LCIO outputfile. Needs to be the last ActiveProcessor.-->

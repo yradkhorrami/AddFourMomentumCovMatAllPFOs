@@ -3,7 +3,9 @@
 #include <EVENT/LCCollection.h>
 #include "EVENT/LCCollection.h"
 #include "IMPL/LCCollectionVec.h"
+#include <UTIL/LCRelationNavigator.h>
 #include "EVENT/MCParticle.h"
+#include "EVENT/Cluster.h"
 #include "EVENT/ReconstructedParticle.h"
 #include <IMPL/ReconstructedParticleImpl.h>
 #include "IMPL/ParticleIDImpl.h"
@@ -44,6 +46,15 @@ pion_mass(0.),
 pion_mass_sq(0.),
 m_pTFile(NULL),
 m_pTTree(NULL),
+m_Histograms(NULL),
+m_CovMatElements(NULL),
+m_NeutralPFOswithoutTrak(NULL),
+m_NeutralPFOswith2Trak(NULL),
+m_ChargedPFOs(NULL),
+m_ErrorParameterization(NULL),
+m_Photon(NULL),
+m_NeutralPFO(NULL),
+m_ChargedPFO(NULL),
 h_nTracks_PFOCharge(NULL),
 h_nClusters_nTracks(NULL),
 h_clusterE_pfoE(NULL),
@@ -76,8 +87,44 @@ h_SigmaPz2(NULL),
 h_SigmaPxE(NULL),
 h_SigmaPyE(NULL),
 h_SigmaPzE(NULL),
-h_SigmaE2(NULL)
-
+h_SigmaE2(NULL),
+h_NeutPFO_PDG(NULL),
+h_NeutPFO_TYPE(NULL),
+h_NeutPFO_IDasPhoton(NULL),
+h_NeutPFO_IDasOther(NULL),
+h_NeutPFO_Mass(NULL),
+h_EP_photons(NULL),
+h_EP_NeutralHadrons(NULL),
+h_NeutPFO_Weight(NULL),
+h_ResidualEnergy_ph(NULL),
+h_ResidualTheta_ph(NULL),
+h_ResidualPhi_ph(NULL),
+h_ErrorEnergy_ph(NULL),
+h_ErrorTheta_ph(NULL),
+h_ErrorPhi_ph(NULL),
+h_NormalizedResidualEnergy_ph(NULL),
+h_NormalizedResidualTheta_ph(NULL),
+h_NormalizedResidualPhi_ph(NULL),
+h_ResidualEnergy_NH(NULL),
+h_ResidualTheta_NH(NULL),
+h_ResidualPhi_NH(NULL),
+h_ErrorEnergy_NH(NULL),
+h_ErrorTheta_NH(NULL),
+h_ErrorPhi_NH(NULL),
+h_NormalizedResidualEnergy_NH(NULL),
+h_NormalizedResidualTheta_NH(NULL),
+h_NormalizedResidualPhi_NH(NULL),
+h_ResidualEnergy_CH(NULL),
+h_ResidualTheta_CH(NULL),
+h_ResidualPhi_CH(NULL),
+h_ErrorEnergy_CH(NULL),
+h_ErrorTheta_CH(NULL),
+h_ErrorPhi_CH(NULL),
+h_NormalizedResidualEnergy_CH(NULL),
+h_NormalizedResidualTheta_CH(NULL),
+h_NormalizedResidualPhi_CH(NULL),
+h_NH_EclusterPlusMass_Emcp(NULL),
+h_NHEnergy(NULL)
 {
 	_description = "Set the convariance matrix in (P,E) for all pfos (charged particles, neutral hadrons and photons)";
 
@@ -86,6 +133,34 @@ h_SigmaE2(NULL)
 					"Name of input pfo collection",
 					m_inputPfoCollection,
 					std::string("PandoraPFOs")
+				);
+
+	registerInputCollection(	LCIO::LCRELATION,
+					"ClusterMCTruthLinkCollection",
+					"Name of input m_ClusterMCTruthLink Collection",
+					m_ClusterMCTruthLinkCollection,
+					std::string("ClusterMCTruthLink")
+				);
+
+	registerInputCollection(	LCIO::LCRELATION,
+					"MCTruthClusterLinkCollection",
+					"Name of input MCTruthClusterLink Collection",
+					m_MCTruthClusterLinkCollection,
+					std::string("MCTruthClusterLink")
+				);
+
+	registerInputCollection(	LCIO::LCRELATION,
+					"TrackMCTruthLinkCollection",
+					"Name of input TrackMCTruthLink Collection",
+					m_TrackMCTruthLinkCollection,
+					std::string("MarlinTrkTracksMCTruthLink")
+				);
+
+	registerInputCollection(	LCIO::LCRELATION,
+					"MCTruthTrackLinkCollection",
+					"Name of input MCTruthTrackLink Collection",
+					m_MCTruthTrackLinkCollection,
+					std::string("MCTruthMarlinTrkTracksLink")
 				);
 
 	registerInputCollection(	LCIO::TRACK,
@@ -116,6 +191,30 @@ h_SigmaE2(NULL)
 					std::string("CorrectedPfoCollection")
 				);
 
+	registerProcessorParameter(	"updateNormalNeutrals",
+					"true: update CovMat for neutrals without track, false: do not update CovMat for neutrals without track",
+					m_updateNormalNeutrals,
+					bool(false)
+				);
+
+	registerProcessorParameter(	"updateNeutrals_wTrack",
+					"true: update CovMat for neutrals with track, false: do not update CovMat for neutrals with track",
+					m_updateNeutrals_wTrack,
+					bool(false)
+				);
+
+	registerProcessorParameter(	"updateCharged",
+					"true: update CovMat for charged particles, false: do not update CovMat for charged particles",
+					m_updateCharged,
+					bool(false)
+				);
+
+	registerProcessorParameter(	"AssumeNeutralPFOMassive",
+					"true: Neutral PFOs are taken massive, false: Neutral PFOs are taken massless",
+					m_AssumeNeutralPFOMassive,
+					bool(false)
+				);
+
 	registerProcessorParameter(	"useClusterPositionError",
 					"true: use cluster position error for CovMat, false: use cluster direction error for CovMat",
 					m_useClusterPositionError,
@@ -133,10 +232,10 @@ h_SigmaE2(NULL)
 void AddFourMomentumCovMatAllPFOs::init()
 {
 
-	streamlog_out(DEBUG) << "   init called  " << std::endl;
+	streamlog_out(MESSAGE) << "   init called  " << std::endl;
 	m_Bfield = MarlinUtil::getBzAtOrigin();
 	printParameters();
-	streamlog_out(DEBUG) << " BField =  "<< m_Bfield << " Tesla" << std::endl ;
+	streamlog_out(MESSAGE) << " BField =  "<< m_Bfield << " Tesla" << std::endl ;
 	m_nRun = 0 ;
 	m_nEvt = 0 ;
 	m_nRunSum = 0;
@@ -157,72 +256,130 @@ void AddFourMomentumCovMatAllPFOs::init()
 	m_pTFile = new TFile(m_rootFile.c_str(), "recreate");
 	m_pTTree = new TTree("CovMatAllPFOsTree", "CovMatAllPFOsTree");
 	m_pTTree->SetDirectory(m_pTFile);
+	m_Histograms = m_pTFile->mkdir("Histograms");
+	m_CovMatElements = m_Histograms->mkdir("CovMatElements");
+	m_NeutralPFOswithoutTrak = m_CovMatElements->mkdir("NeutralPFOswithoutTrak");
+	m_NeutralPFOswith2Trak = m_CovMatElements->mkdir("NeutralPFOswith2Trak");
+	m_ChargedPFOs = m_CovMatElements->mkdir("ChargedPFOs");
+	m_ErrorParameterization = m_Histograms->mkdir("ErrorParameterization");
+	m_Photon = m_ErrorParameterization->mkdir("Photon");
+	m_NeutralPFO = m_ErrorParameterization->mkdir("NeutralPFO");
+	m_ChargedPFO = m_ErrorParameterization->mkdir("ChargedPFO");
 	h_nTracks_PFOCharge = new TH2I("All PFOs", "; charge of PFO; n_{Tracks}", 5, -2.5, 2.5, 5, -0.5, 4.5);
-	h_nTracks_PFOCharge->SetDirectory(m_pTFile);
 	h_nClusters_nTracks = new TH2I("Neutral PFOs", "; n_{Clusters}; n_{Tracks}", 5, -0.5, 4.5, 5, -0.5, 4.5);
-	h_nClusters_nTracks->SetDirectory(m_pTFile);
-	h_clusterE_pfoE = new TH2F("Neutral PFOs (n_{Tracks} = 0)", "; E_{Cluster} [GeV]; E_{PFO} [GeV]", 100, 0.0, 100., 100, 0.0, 100.);
-	h_clusterE_pfoE->SetDirectory(m_pTFile);
+	h_clusterE_pfoE = new TH2F("Neutral PFOs (n_{Tracks} = 0)", "; E_{Cluster} [GeV]; E_{PFO} [GeV]", 10000, 0.0, 100., 10000, 0.0, 100.);
 	h_SigmaPx2nT = new TH2F("Neutral PFOs (n_{Tracks} = 0)", "; #sigma_{p_{x}}^{2} (new PFO) [GeV^{2}]; #sigma_{p_{x}}^{2} (old PFO) [GeV^{2}]", 400, 0.0, 0.1, 400, 0.0, 0.1);
-	h_SigmaPx2nT->SetDirectory(m_pTFile);
 	h_SigmaPxPynT = new TH2F("Neutral PFOs (n_{Tracks} = 0)", "; #sigma_{p_{x}p_{y}} (new PFO) [GeV^{2}]; #sigma_{p_{x}p_{y}} (old PFO) [GeV^{2}]", 400, -0.1, 0.1, 400, -0.1, 0.1);
-	h_SigmaPxPynT->SetDirectory(m_pTFile);
 	h_SigmaPy2nT = new TH2F("Neutral PFOs (n_{Tracks} = 0)", "; #sigma_{p_{y}}^{2} (new PFO) [GeV^{2}]; #sigma_{p_{y}}^{2} (old PFO) [GeV^{2}]", 400, 0.0, 0.1, 400, 0.0, 0.1);
-	h_SigmaPy2nT->SetDirectory(m_pTFile);
 	h_SigmaPxPznT = new TH2F("Neutral PFOs (n_{Tracks} = 0)", "; #sigma_{p_{x}p_{z}} (new PFO) [GeV^{2}]; #sigma_{p_{x}p_{z}} (old PFO) [GeV^{2}]", 400, -0.1, 0.1, 400, -0.1, 0.1);
-	h_SigmaPxPznT->SetDirectory(m_pTFile);
 	h_SigmaPyPznT = new TH2F("Neutral PFOs (n_{Tracks} = 0)", "; #sigma_{p_{y}p_{z}} (new PFO) [GeV^{2}]; #sigma_{p_{y}p_{z}} (old PFO) [GeV^{2}]", 400, -0.1, 0.1, 400, -0.1, 0.1);
-	h_SigmaPyPznT->SetDirectory(m_pTFile);
 	h_SigmaPz2nT = new TH2F("Neutral PFOs (n_{Tracks} = 0)", "; #sigma_{p_{z}}^{2} (new PFO) [GeV^{2}]; #sigma_{p_{z}}^{2} (old PFO) [GeV^{2}]", 400, 0.0, 0.1, 400, 0.0, 0.1);
-	h_SigmaPz2nT->SetDirectory(m_pTFile);
 	h_SigmaPxEnT = new TH2F("Neutral PFOs (n_{Tracks} = 0)", "; #sigma_{p_{x}E} (new PFO) [GeV^{2}]; #sigma_{p_{x}E} (old PFO) [GeV^{2}]", 400, -0.1, 0.1, 400, -0.1, 0.1);
-	h_SigmaPxEnT->SetDirectory(m_pTFile);
 	h_SigmaPyEnT = new TH2F("Neutral PFOs (n_{Tracks} = 0)", "; #sigma_{p_{y}E} (new PFO) [GeV^{2}]; #sigma_{p_{y}E} (old PFO) [GeV^{2}]", 400, -0.1, 0.1, 400, -0.1, 0.1);
-	h_SigmaPyEnT->SetDirectory(m_pTFile);
 	h_SigmaPzEnT = new TH2F("Neutral PFOs (n_{Tracks} = 0)", "; #sigma_{p_{z}E} (new PFO) [GeV^{2}]; #sigma_{p_{z}E} (old PFO) [GeV^{2}]", 400, -0.1, 0.1, 400, -0.1, 0.1);
-	h_SigmaPzEnT->SetDirectory(m_pTFile);
 	h_SigmaE2nT = new TH2F("Neutral PFOs (n_{Tracks} = 0)", "; #sigma_{E}^{2} (new PFO) [GeV^{2}]; #sigma_{E}^{2} (old PFO) [GeV^{2}]", 400, 0.0, 0.6, 400, 0.0, 0.6);
-	h_SigmaE2nT->SetDirectory(m_pTFile);
 	h_SigmaPx2T = new TH2F("Neutral PFOs (n_{Tracks} = 2)", "; #sigma_{p_{x}}^{2} (new PFO) [GeV^{2}]; #sigma_{p_{x}}^{2} (old PFO) [GeV^{2}]", 400, 0.0, 0.1, 400, 0.0, 0.1);
-	h_SigmaPx2T->SetDirectory(m_pTFile);
 	h_SigmaPxPyT = new TH2F("Neutral PFOs (n_{Tracks} = 2)", "; #sigma_{p_{x}p_{y}} (new PFO) [GeV^{2}]; #sigma_{p_{x}p_{y}} (old PFO) [GeV^{2}]", 400, -0.1, 0.1, 400, -0.1, 0.1);
-	h_SigmaPxPyT->SetDirectory(m_pTFile);
 	h_SigmaPy2T = new TH2F("Neutral PFOs (n_{Tracks} = 2)", "; #sigma_{p_{y}}^{2} (new PFO) [GeV^{2}]; #sigma_{p_{y}}^{2} (old PFO) [GeV^{2}]", 400, 0.0, 0.1, 400, 0.0, 0.1);
-	h_SigmaPy2T->SetDirectory(m_pTFile);
 	h_SigmaPxPzT = new TH2F("Neutral PFOs (n_{Tracks} = 2)", "; #sigma_{p_{x}p_{z}} (new PFO) [GeV^{2}]; #sigma_{p_{x}p_{z}} (old PFO) [GeV^{2}]", 400, -0.1, 0.1, 400, -0.1, 0.1);
-	h_SigmaPxPzT->SetDirectory(m_pTFile);
 	h_SigmaPyPzT = new TH2F("Neutral PFOs (n_{Tracks} = 2)", "; #sigma_{p_{y}p_{z}} (new PFO) [GeV^{2}]; #sigma_{p_{y}p_{z}} (old PFO) [GeV^{2}]", 400, -0.1, 0.1, 400, -0.1, 0.1);
-	h_SigmaPyPzT->SetDirectory(m_pTFile);
 	h_SigmaPz2T = new TH2F("Neutral PFOs (n_{Tracks} = 2)", "; #sigma_{p_{z}}^{2} (new PFO) [GeV^{2}]; #sigma_{p_{z}}^{2} (old PFO) [GeV^{2}]", 400, 0.0, 0.1, 400, 0.0, 0.1);
-	h_SigmaPz2T->SetDirectory(m_pTFile);
 	h_SigmaPxET = new TH2F("Neutral PFOs (n_{Tracks} = 2)", "; #sigma_{p_{x}E} (new PFO) [GeV^{2}]; #sigma_{p_{x}E} (old PFO) [GeV^{2}]", 400, -0.1, 0.1, 400, -0.1, 0.1);
-	h_SigmaPxET->SetDirectory(m_pTFile);
 	h_SigmaPyET = new TH2F("Neutral PFOs (n_{Tracks} = 2)", "; #sigma_{p_{y}E} (new PFO) [GeV^{2}]; #sigma_{p_{y}E} (old PFO) [GeV^{2}]", 400, -0.1, 0.1, 400, -0.1, 0.1);
-	h_SigmaPyET->SetDirectory(m_pTFile);
 	h_SigmaPzET = new TH2F("Neutral PFOs (n_{Tracks} = 2)", "; #sigma_{p_{z}E} (new PFO) [GeV^{2}]; #sigma_{p_{z}E} (old PFO) [GeV^{2}]", 400, -0.1, 0.1, 400, -0.1, 0.1);
-	h_SigmaPzET->SetDirectory(m_pTFile);
 	h_SigmaE2T = new TH2F("Neutral PFOs (n_{Tracks} = 2)", "; #sigma_{E}^{2} (new PFO) [GeV^{2}]; #sigma_{E}^{2} (old PFO) [GeV^{2}]", 400, 0.0, 0.6, 400, 0.0, 0.6);
-	h_SigmaE2T->SetDirectory(m_pTFile);
 	h_SigmaPx2 = new TH2F("Charged PFOs", "; #sigma_{p_{x}}^{2} (new PFO) [GeV^{2}]; #sigma_{p_{x}}^{2} (old PFO) [GeV^{2}]", 400, 0.0, 0.1, 400, 0.0, 0.1);
-	h_SigmaPx2->SetDirectory(m_pTFile);
 	h_SigmaPxPy = new TH2F("Charged PFOs", "; #sigma_{p_{x}p_{y}} (new PFO) [GeV^{2}]; #sigma_{p_{x}p_{y}} (old PFO) [GeV^{2}]", 400, -0.1, 0.1, 400, -0.1, 0.1);
-	h_SigmaPxPy->SetDirectory(m_pTFile);
 	h_SigmaPy2 = new TH2F("Charged PFOs", "; #sigma_{p_{y}}^{2} (new PFO) [GeV^{2}]; #sigma_{p_{y}}^{2} (old PFO) [GeV^{2}]", 400, 0.0, 0.1, 400, 0.0, 0.1);
-	h_SigmaPy2->SetDirectory(m_pTFile);
 	h_SigmaPxPz = new TH2F("Charged PFOs", "; #sigma_{p_{x}p_{z}} (new PFO) [GeV^{2}]; #sigma_{p_{x}p_{z}} (old PFO) [GeV^{2}]", 400, -0.1, 0.1, 400, -0.1, 0.1);
-	h_SigmaPxPz->SetDirectory(m_pTFile);
 	h_SigmaPyPz = new TH2F("Charged PFOs", "; #sigma_{p_{y}p_{z}} (new PFO) [GeV^{2}]; #sigma_{p_{y}p_{z}} (old PFO) [GeV^{2}]", 400, -0.1, 0.1, 400, -0.1, 0.1);
-	h_SigmaPyPz->SetDirectory(m_pTFile);
 	h_SigmaPz2 = new TH2F("Charged PFOs", "; #sigma_{p_{z}}^{2} (new PFO) [GeV^{2}]; #sigma_{p_{z}}^{2} (old PFO) [GeV^{2}]", 400, 0.0, 0.1, 400, 0.0, 0.1);
-	h_SigmaPz2->SetDirectory(m_pTFile);
 	h_SigmaPxE = new TH2F("Charged PFOs", "; #sigma_{p_{x}E} (new PFO) [GeV^{2}]; #sigma_{p_{x}E} (old PFO) [GeV^{2}]", 400, -0.1, 0.1, 400, -0.1, 0.1);
-	h_SigmaPxE->SetDirectory(m_pTFile);
 	h_SigmaPyE = new TH2F("Charged PFOs", "; #sigma_{p_{y}E} (new PFO) [GeV^{2}]; #sigma_{p_{y}E} (old PFO) [GeV^{2}]", 400, -0.1, 0.1, 400, -0.1, 0.1);
-	h_SigmaPyE->SetDirectory(m_pTFile);
 	h_SigmaPzE = new TH2F("Charged PFOs", "; #sigma_{p_{z}E} (new PFO) [GeV^{2}]; #sigma_{p_{z}E} (old PFO) [GeV^{2}]", 400, -0.1, 0.1, 400, -0.1, 0.1);
-	h_SigmaPzE->SetDirectory(m_pTFile);
 	h_SigmaE2 = new TH2F("Charged PFOs", "; #sigma_{E}^{2} (new PFO) [GeV^{2}]; #sigma_{E}^{2} (old PFO) [GeV^{2}]", 400, 0.0, 0.6, 400, 0.0, 0.6);
-	h_SigmaE2->SetDirectory(m_pTFile);
+	h_NeutPFO_PDG = new TH1I("Neutral PFOs PDG", "; PDG Code", 200001, -100000.5, 100000.5);
+	h_NeutPFO_TYPE = new TH1I("Neutral PFOs TYPE", "; True Part. Type", 15, 0, 15);
+	h_NeutPFO_TYPE->GetXaxis()->SetBinLabel(1,"e^{#pm}");
+	h_NeutPFO_TYPE->GetXaxis()->SetBinLabel(2,"#mu^{#pm}");
+	h_NeutPFO_TYPE->GetXaxis()->SetBinLabel(3,"#gamma");
+	h_NeutPFO_TYPE->GetXaxis()->SetBinLabel(4,"K^{0}_{L}");
+	h_NeutPFO_TYPE->GetXaxis()->SetBinLabel(5,"#pi^{#pm}");
+	h_NeutPFO_TYPE->GetXaxis()->SetBinLabel(6,"K^{0}_{S}");
+	h_NeutPFO_TYPE->GetXaxis()->SetBinLabel(7,"K^{#pm}");
+	h_NeutPFO_TYPE->GetXaxis()->SetBinLabel(8,"n");
+	h_NeutPFO_TYPE->GetXaxis()->SetBinLabel(9,"p");
+	h_NeutPFO_TYPE->GetXaxis()->SetBinLabel(10,"#Sigma^{-}");
+	h_NeutPFO_TYPE->GetXaxis()->SetBinLabel(11,"#Lambda");
+	h_NeutPFO_TYPE->GetXaxis()->SetBinLabel(12,"#Sigma^{+}");
+	h_NeutPFO_TYPE->GetXaxis()->SetBinLabel(13,"#Xi^{-}");
+	h_NeutPFO_TYPE->GetXaxis()->SetBinLabel(14,"#Xi");
+	h_NeutPFO_TYPE->GetXaxis()->SetBinLabel(15,"Others");
+	h_NeutPFO_IDasPhoton = new TH1I("Photons", "; True Part. Type", 15, 0, 15);
+	h_NeutPFO_IDasPhoton->GetXaxis()->SetBinLabel(1,"e^{#pm}");
+	h_NeutPFO_IDasPhoton->GetXaxis()->SetBinLabel(2,"#mu^{#pm}");
+	h_NeutPFO_IDasPhoton->GetXaxis()->SetBinLabel(3,"#gamma");
+	h_NeutPFO_IDasPhoton->GetXaxis()->SetBinLabel(4,"K^{0}_{L}");
+	h_NeutPFO_IDasPhoton->GetXaxis()->SetBinLabel(5,"#pi^{#pm}");
+	h_NeutPFO_IDasPhoton->GetXaxis()->SetBinLabel(6,"K^{0}_{S}");
+	h_NeutPFO_IDasPhoton->GetXaxis()->SetBinLabel(7,"K^{#pm}");
+	h_NeutPFO_IDasPhoton->GetXaxis()->SetBinLabel(8,"n");
+	h_NeutPFO_IDasPhoton->GetXaxis()->SetBinLabel(9,"p");
+	h_NeutPFO_IDasPhoton->GetXaxis()->SetBinLabel(10,"#Sigma^{-}");
+	h_NeutPFO_IDasPhoton->GetXaxis()->SetBinLabel(11,"#Lambda");
+	h_NeutPFO_IDasPhoton->GetXaxis()->SetBinLabel(12,"#Sigma^{+}");
+	h_NeutPFO_IDasPhoton->GetXaxis()->SetBinLabel(13,"#Xi^{-}");
+	h_NeutPFO_IDasPhoton->GetXaxis()->SetBinLabel(14,"#Xi");
+	h_NeutPFO_IDasPhoton->GetXaxis()->SetBinLabel(15,"Others");
+	h_NeutPFO_IDasOther = new TH1I("Other Neutal PFOs", "; True Part. Type", 15, 0, 15);
+	h_NeutPFO_IDasOther->GetXaxis()->SetBinLabel(1,"e^{#pm}");
+	h_NeutPFO_IDasOther->GetXaxis()->SetBinLabel(2,"#mu^{#pm}");
+	h_NeutPFO_IDasOther->GetXaxis()->SetBinLabel(3,"#gamma");
+	h_NeutPFO_IDasOther->GetXaxis()->SetBinLabel(4,"K^{0}_{L}");
+	h_NeutPFO_IDasOther->GetXaxis()->SetBinLabel(5,"#pi^{#pm}");
+	h_NeutPFO_IDasOther->GetXaxis()->SetBinLabel(6,"K^{0}_{S}");
+	h_NeutPFO_IDasOther->GetXaxis()->SetBinLabel(7,"K^{#pm}");
+	h_NeutPFO_IDasOther->GetXaxis()->SetBinLabel(8,"n");
+	h_NeutPFO_IDasOther->GetXaxis()->SetBinLabel(9,"p");
+	h_NeutPFO_IDasOther->GetXaxis()->SetBinLabel(10,"#Sigma^{-}");
+	h_NeutPFO_IDasOther->GetXaxis()->SetBinLabel(11,"#Lambda");
+	h_NeutPFO_IDasOther->GetXaxis()->SetBinLabel(12,"#Sigma^{+}");
+	h_NeutPFO_IDasOther->GetXaxis()->SetBinLabel(13,"#Xi^{-}");
+	h_NeutPFO_IDasOther->GetXaxis()->SetBinLabel(14,"#Xi");
+	h_NeutPFO_IDasOther->GetXaxis()->SetBinLabel(15,"Others");
+	h_NeutPFO_Mass = new TH1F("Neutral PFOs Mass", "; PFO Mass [GeV]", 200, 0.0, 10.0);
+	h_EP_photons = new TH2F("Photons", "; |#vec{p}_{PFO}|^{2} [GeV^{2}]; E_{PFO}^{2} [GeV^{2}]", 1000, 0.0, 10.0, 1000, 0.0, 10.0);
+	h_EP_NeutralHadrons = new TH2F("Neutral Hadrons", "; |#vec{p}_{PFO}|^{2} [GeV^{2}]; E_{PFO}^{2} [GeV^{2}]", 1000, 0.0, 10.0, 1000, 0.0, 10.0);
+	h_NeutPFO_Weight = new TH1F("Neutral Hadrons MCP Link Weight", "; Link weight", 100, 0.0, 1.0);
+	h_ResidualEnergy_ph = new TH1F("Photons", "; E_{REC} - E_{MCP} [GeV]", 200, -10.0, 10.0);
+	h_ResidualTheta_ph = new TH1F("Photons", "; #theta_{REC} - #theta_{MCP} [radian]", 200, -10.0, 10.0);
+	h_ResidualPhi_ph = new TH1F("Photons", "; #phi_{REC} - #phi_{MCP} [radian]", 200, -10.0, 10.0);
+	h_ErrorEnergy_ph = new TH1F("Photons", "; #sigma_{E} [GeV]", 1000, 0.0, 10.0);
+	h_ErrorTheta_ph = new TH1F("Photons", "; #sigma_{#theta} [radian]", 10000, 0.0, 1.0);
+	h_ErrorPhi_ph = new TH1F("Photons", "; #sigma_{#phi} [radian]", 10000, 0.0, 1.0);
+	h_NormalizedResidualEnergy_ph = new TH1F("Photons", "; (E_{REC} - E_{MCP}) / #sigma_{E}", 200, -10.0, 10.0);
+	h_NormalizedResidualTheta_ph = new TH1F("Photons", "; (#theta_{REC} - #theta_{MCP}) / #sigma_{#theta}", 200, -10.0, 10.0);
+	h_NormalizedResidualPhi_ph = new TH1F("Photons", "; (#phi_{REC} - #phi_{MCP}) / #sigma_{#phi}", 200, -10.0, 10.0);
+	h_ResidualEnergy_NH = new TH1F("Neutral Hadrons", "; E_{REC} - E_{MCP} [GeV]", 200, -10.0, 10.0);
+	h_ResidualTheta_NH = new TH1F("Neutral Hadrons", "; #theta_{REC} - #theta_{MCP} [radian]", 200, -10.0, 10.0);
+	h_ResidualPhi_NH = new TH1F("Neutral Hadrons", "; #phi_{REC} - #phi_{MCP} [radian]", 200, -10.0, 10.0);
+	h_ErrorEnergy_NH = new TH1F("Neutral Hadrons", "; #sigma_{E} [GeV]", 1000, 0.0, 10.0);
+	h_ErrorTheta_NH = new TH1F("Neutral Hadrons", "; #sigma_{#theta} [radian]", 10000, 0.0, 1.0);
+	h_ErrorPhi_NH = new TH1F("Neutral Hadrons", "; #sigma_{#phi} [radian]", 10000, 0.0, 1.0);
+	h_NormalizedResidualEnergy_NH = new TH1F("Neutral Hadrons", "; (E_{REC} - E_{MCP}) / #sigma_{E}", 200, -10.0, 10.0);
+	h_NormalizedResidualTheta_NH = new TH1F("Neutral Hadrons", "; (#theta_{REC} - #theta_{MCP}) / #sigma_{#theta}", 200, -10.0, 10.0);
+	h_NormalizedResidualPhi_NH = new TH1F("Neutral Hadrons", "; (#phi_{REC} - #phi_{MCP}) / #sigma_{#phi}", 200, -10.0, 10.0);
+	h_ResidualEnergy_CH = new TH1F("Charged PFOs", "; E_{REC} - E_{MCP} [GeV]", 200, -10.0, 10.0);
+	h_ResidualTheta_CH = new TH1F("Charged PFOs", "; #theta_{REC} - #theta_{MCP} [radian]", 200, -10.0, 10.0);
+	h_ResidualPhi_CH = new TH1F("Charged PFOs", "; #phi_{REC} - #phi_{MCP} [radian]", 200, -10.0, 10.0);
+	h_ErrorEnergy_CH = new TH1F("Charged PFOs", "; #sigma_{E} [GeV]", 1000, 0.0, 10.0);
+	h_ErrorTheta_CH = new TH1F("Charged PFOs", "; #sigma_{#theta} [radian]", 10000, 0.0, 1.0);
+	h_ErrorPhi_CH = new TH1F("Charged PFOs", "; #sigma_{#phi} [radian]", 10000, 0.0, 1.0);
+	h_NormalizedResidualEnergy_CH = new TH1F("Charged PFOs", "; (E_{REC} - E_{MCP}) / #sigma_{E}", 200, -10.0, 10.0);
+	h_NormalizedResidualTheta_CH = new TH1F("Charged PFOs", "; (#theta_{REC} - #theta_{MCP}) / #sigma_{#theta}", 200, -10.0, 10.0);
+	h_NormalizedResidualPhi_CH = new TH1F("Charged PFOs", "; (#phi_{REC} - #phi_{MCP}) / #sigma_{#phi}", 200, -10.0, 10.0);
+	h_NH_EclusterPlusMass_Emcp = new TH2F("Neutral Hadrons", "; E_{MCP} [GeV]; E_{cluster} + m [GeV]", 1000, 0.0, 10.0, 1000, 0.0, 10.0);
+	h_NHEnergy = new TH2F("Neutral Hadrons", "; E_{MCP} [GeV]; E_{PFO} [GeV]", 1000, 0.0, 10.0, 1000, 0.0, 10.0);
 
 }
 
@@ -246,12 +403,13 @@ void AddFourMomentumCovMatAllPFOs::processEvent( EVENT::LCEvent *pLCEvent )
 	m_nRun = pLCEvent->getRunNumber();
 	m_nEvt = pLCEvent->getEventNumber();
 	++m_nEvtSum;
+	streamlog_out(MESSAGE) << "processed event 	" << m_nEvtSum << std::endl;
 
 	LCCollection *inputPfoCollection{};
 	this->Clear();
 
-        try
-        {
+	try
+	{
 		inputPfoCollection = pLCEvent->getCollection(m_inputPfoCollection);
 		int n_PFO = inputPfoCollection->getNumberOfElements();
 		LCCollectionVec *m_col_outputPfo = new LCCollectionVec(LCIO::RECONSTRUCTEDPARTICLE);
@@ -262,7 +420,7 @@ void AddFourMomentumCovMatAllPFOs::processEvent( EVENT::LCEvent *pLCEvent )
 			double outputPFOMomentum[3]{0., 0., 0.};
 			double outputPFOEnergy = 0.;
 			float pfoCharge = inputPFO->getCharge();
-			
+
 			TrackVec pfoTracks	= inputPFO->getTracks();
 			int nTrackspfo		= pfoTracks.size();
 			int nClusterspfo	= (inputPFO->getClusters()).size();
@@ -273,42 +431,85 @@ void AddFourMomentumCovMatAllPFOs::processEvent( EVENT::LCEvent *pLCEvent )
 			TVector3 clusterPosition(0.,0.,0.);
 			float pfoMass		= inputPFO->getMass();
 			std::vector<float> outputCovMatrix( 10, 0.0 );
-			std::vector<float> inputCovMatrix = inputPFO->getCovMatrix();//( 10, 0.0 );
+			std::vector<float> inputCovMatrix( 10, 0.0 );
+			outputCovMatrix = inputCovMatrix;
+			TLorentzVector mcpFourMomentum( 0.0 , 0.0 , 0.0 , 0.0 );
+			std::vector<float> PFONormalizedResidual( 9 , 0.0 );
+			mcpFourMomentum = this->getLinkedMCP( pLCEvent , inputPFO, nTrackspfo , nClusterspfo );
+			inputCovMatrix = inputPFO->getCovMatrix();
 			if ( pfoCharge == 0)
 			{
 				h_nClusters_nTracks->Fill( nClusterspfo , nTrackspfo );
-				if ( nTrackspfo == 0 )
+				if ( nTrackspfo == 0 && m_updateNormalNeutrals )
 				{
+					
+					streamlog_out(DEBUG) << "PFO is neutral without track, CovMatrix is set using cluster information" << std::endl;
+					float pfoP2 = pow( inputPFO->getMomentum()[0] , 2 ) + pow( inputPFO->getMomentum()[1] , 2 ) + pow( inputPFO->getMomentum()[2] , 2 );
+					float pfoE2 = pow ( inputPFO->getEnergy() , 2 );
+					h_NeutPFO_Mass->Fill( inputPFO->getMass() );
+					
+					if ( !m_AssumeNeutralPFOMassive ) pfoMass = 0.0;
+					if ( inputPFO->getType() == 22 )
+					{
+						h_EP_photons->Fill( pfoP2 , pfoE2 );
+					}
+					else
+					{
+						h_EP_NeutralHadrons->Fill( pfoP2 , pfoE2 );
+					}
 					float clusterEnergy	= ( inputPFO->getClusters()[0] )->getEnergy();
-//					float clusterTheta	= ( inputPFO->getClusters()[0] )->getITheta();
-//					float clusterPhi	= ( inputPFO->getClusters()[0] )->getIPhi();
+					float pfoEnergy		= inputPFO->getEnergy();
 					float clusterX		= ( inputPFO->getClusters()[0] )->getPosition()[0];
 					float clusterY		= ( inputPFO->getClusters()[0] )->getPosition()[1];
 					float clusterZ		= ( inputPFO->getClusters()[0] )->getPosition()[2];
-					clusterPosition		= TVector3( clusterX , clusterY , clusterZ );
+					clusterPosition	= TVector3( clusterX , clusterY , clusterZ );
 					float clusterDistance	= sqrt( pow( clusterX , 2 ) + pow( clusterY , 2 ) + pow( clusterZ , 2 ) );
-//					float pfoMomentumMag	= std::sqrt( pow( pfoEnergy , 2 ) - pow( pfoMass , 2 ) );
-					float pfoMomentumMag	= clusterEnergy;
-					float pfoPx		= pfoMomentumMag * clusterX / clusterDistance;
-					float pfoPy		= pfoMomentumMag * clusterY / clusterDistance;
-					float pfoPz		= pfoMomentumMag * clusterZ / clusterDistance;
-					TVector3 pfoMomentum( pfoPx , pfoPy , pfoPz );
-					float pfoEnergy		= inputPFO->getEnergy();
-					pfoMass			= 0.0;
-//					float pfoEnergy		= std::sqrt( pow( pfoMomentumMag , 2 ) + pow( pfoMass , 2 ) );
-					pfoFourMomentum		= TLorentzVector( pfoMomentum , pfoEnergy );
+					float pfoMomentumMag	= sqrt( pow( clusterEnergy , 2 ) + 2 * pfoMass * clusterEnergy );
+					float pfoPx;
+					float pfoPy;
+					float pfoPz;
+					
 					std::vector<float> clusterDirectionError = ( inputPFO->getClusters()[0] )->getDirectionError();
 					std::vector<float> clusterPositionError = ( inputPFO->getClusters()[0] )->getPositionError();
 					float clusterEnergyError= ( inputPFO->getClusters()[0] )->getEnergyError();
 					streamlog_out(DEBUG) << "cluster / PFO Energy : " << clusterEnergy << " / " << pfoEnergy << std::endl;
 					h_clusterE_pfoE->Fill( clusterEnergy , pfoEnergy );
-					if ( m_useClusterPositionError )
+					pfoPx	= pfoMomentumMag * clusterX / clusterDistance;
+					pfoPy	= pfoMomentumMag * clusterY / clusterDistance;
+					pfoPz	= pfoMomentumMag * clusterZ / clusterDistance;
+					TVector3 pfoMomentum( pfoPx , pfoPy , pfoPz );
+					pfoFourMomentum	= TLorentzVector( pfoMomentum , clusterEnergy + pfoMass );
+//					outputCovMatrix	= this->UpdateNeutralPFOCovMat( clusterPosition , clusterEnergy , pfoMass , clusterPositionError , clusterEnergyError );
+					outputCovMatrix	= this->UpdateNeutralPFOCovMat( clusterPosition , pfoEnergy , pfoMass , clusterPositionError , clusterEnergyError );
+					if ( mcpFourMomentum.E() != 0 )
 					{
-						outputCovMatrix		= this->UpdateNeutralPFOCovMatPosError( clusterPosition , pfoEnergy , pfoMass , clusterPositionError , clusterEnergyError );
-					}
-					else
-					{
-						outputCovMatrix		= this->UpdateNeutralPFOCovMatDirError( pfoFourMomentum , clusterDirectionError , clusterEnergyError );
+						PFONormalizedResidual = this->getPFONormalizedResidual( pfoFourMomentum , mcpFourMomentum , outputCovMatrix );
+						float ThetaError = PFONormalizedResidual[ 4 ];
+						float PhiError = PFONormalizedResidual[ 5 ];
+						if ( inputPFO->getType() == 22 )
+						{
+							h_ResidualEnergy_ph->Fill( PFONormalizedResidual[ 0 ] );
+							h_ResidualTheta_ph->Fill( PFONormalizedResidual[ 1 ] );
+							h_ResidualPhi_ph->Fill( PFONormalizedResidual[ 2 ] );
+							h_ErrorEnergy_ph->Fill( PFONormalizedResidual[ 3 ] );
+							h_ErrorTheta_ph->Fill( ThetaError );
+							h_ErrorPhi_ph->Fill( PhiError );
+							h_NormalizedResidualEnergy_ph->Fill( PFONormalizedResidual[ 0 ] / PFONormalizedResidual[ 3 ] );
+							h_NormalizedResidualTheta_ph->Fill( PFONormalizedResidual[ 1 ] / ThetaError );
+							h_NormalizedResidualPhi_ph->Fill( PFONormalizedResidual[ 2 ] / PhiError );
+						}
+						else
+						{
+							h_ResidualEnergy_NH->Fill( PFONormalizedResidual[ 0 ] );
+							h_ResidualTheta_NH->Fill( PFONormalizedResidual[ 1 ] );
+							h_ResidualPhi_NH->Fill( PFONormalizedResidual[ 2 ] );
+							h_ErrorEnergy_NH->Fill( PFONormalizedResidual[ 3 ] );
+							h_ErrorTheta_NH->Fill( ThetaError );
+							h_ErrorPhi_NH->Fill( PhiError );
+							h_NormalizedResidualEnergy_NH->Fill( PFONormalizedResidual[ 0 ] / PFONormalizedResidual[ 3 ] );
+							h_NormalizedResidualTheta_NH->Fill( PFONormalizedResidual[ 1 ] / ThetaError );
+							h_NormalizedResidualPhi_NH->Fill( PFONormalizedResidual[ 2 ] / PhiError );
+						}
 					}
 					streamlog_out(DEBUG) << "PFO is neutral (without track), CovMatrix is set using cluster information" << std::endl;
 					h_SigmaPx2nT->Fill( outputCovMatrix[0] , inputCovMatrix[0] );
@@ -322,8 +523,9 @@ void AddFourMomentumCovMatAllPFOs::processEvent( EVENT::LCEvent *pLCEvent )
 					h_SigmaPzEnT->Fill( outputCovMatrix[8] , inputCovMatrix[8] );
 					h_SigmaE2nT->Fill( outputCovMatrix[9] , inputCovMatrix[9] );
 				}
-				else if ( nTrackspfo == 2 )
+				else if ( nTrackspfo == 2 && m_updateNeutrals_wTrack )
 				{
+					streamlog_out(DEBUG) << "PFO is neutral (with two tracks), CovMatrix is set using track information" << std::endl;
 					std::vector<float> pfoTrackCovMat( 10, 0.0 );
 					for ( int i_trk = 0 ; i_trk < nTrackspfo ; ++i_trk )
 					{
@@ -334,7 +536,6 @@ void AddFourMomentumCovMatAllPFOs::processEvent( EVENT::LCEvent *pLCEvent )
 							track_mass = pion_mass;
 							streamlog_out(MESSAGE) << "Couldn't Find track mass, default mass (pion mass) is set" << std::endl;
 						}
-						streamlog_out(DEBUG) << "PFO is neutral (with two tracks), CovMatrix is set using track information" << std::endl;
 						double track_omega	= mytrack->getOmega();
 						double track_tanL	= mytrack->getTanLambda();
 						double track_phi	= mytrack->getPhi();
@@ -351,6 +552,21 @@ void AddFourMomentumCovMatAllPFOs::processEvent( EVENT::LCEvent *pLCEvent )
 						}
 						pfoFourMomentum		+= trackFourMomentum;
 					}
+					if ( mcpFourMomentum.E() != 0 )
+					{
+						PFONormalizedResidual = this->getPFONormalizedResidual( pfoFourMomentum , mcpFourMomentum , outputCovMatrix );
+						float ThetaError = PFONormalizedResidual[ 4 ];
+						float PhiError = PFONormalizedResidual[ 5 ];
+						h_ResidualEnergy_NH->Fill( PFONormalizedResidual[ 0 ] );
+						h_ResidualTheta_NH->Fill( PFONormalizedResidual[ 1 ] );
+						h_ResidualPhi_NH->Fill( PFONormalizedResidual[ 2 ] );
+						h_ErrorEnergy_NH->Fill( PFONormalizedResidual[ 3 ] );
+						h_ErrorTheta_NH->Fill( ThetaError );
+						h_ErrorPhi_NH->Fill( PhiError );
+						h_NormalizedResidualEnergy_NH->Fill( PFONormalizedResidual[ 0 ] / PFONormalizedResidual[ 3 ] );
+						h_NormalizedResidualTheta_NH->Fill( PFONormalizedResidual[ 1 ] / ThetaError );
+						h_NormalizedResidualPhi_NH->Fill( PFONormalizedResidual[ 2 ] / PhiError );
+					}
 					h_SigmaPx2T->Fill( outputCovMatrix[0] , inputCovMatrix[0] );
 					h_SigmaPxPyT->Fill( outputCovMatrix[1] , inputCovMatrix[1] );
 					h_SigmaPy2T->Fill( outputCovMatrix[2] , inputCovMatrix[2] );
@@ -363,9 +579,10 @@ void AddFourMomentumCovMatAllPFOs::processEvent( EVENT::LCEvent *pLCEvent )
 					h_SigmaE2T->Fill( outputCovMatrix[9] , inputCovMatrix[9] );
 				}
 			}
-			else
+			else if ( m_updateCharged )
 			{
 				std::vector<float> pfoTrackCovMat( 10, 0.0 );
+				streamlog_out(DEBUG) << "PFO is charged (with " << nTrackspfo << " tracks), CovMatrix is set using track information" << std::endl;
 				for ( int i_trk = 0 ; i_trk < nTrackspfo ; ++i_trk )
 				{
 					Track* mytrack		= pfoTracks[ i_trk ];
@@ -375,7 +592,6 @@ void AddFourMomentumCovMatAllPFOs::processEvent( EVENT::LCEvent *pLCEvent )
 						track_mass = pion_mass;
 						streamlog_out(MESSAGE) << "Couldn't Find track mass, default mass (pion mass) is set" << std::endl;
 					}
-					streamlog_out(DEBUG) << "PFO is charged (with " << nTrackspfo << " tracks), CovMatrix is set using track information" << std::endl;
 					double track_omega	= mytrack->getOmega();
 					double track_tanL	= mytrack->getTanLambda();
 					double track_phi	= mytrack->getPhi();
@@ -392,6 +608,22 @@ void AddFourMomentumCovMatAllPFOs::processEvent( EVENT::LCEvent *pLCEvent )
 					}
 					pfoFourMomentum		+= trackFourMomentum;
 				}
+				if ( mcpFourMomentum.E() != 0 )
+				{
+					PFONormalizedResidual = this->getPFONormalizedResidual( pfoFourMomentum , mcpFourMomentum , outputCovMatrix );
+					float ThetaError = PFONormalizedResidual[ 4 ];
+					float PhiError = PFONormalizedResidual[ 5 ];
+					h_ResidualEnergy_CH->Fill( PFONormalizedResidual[ 0 ] );
+					h_ResidualTheta_CH->Fill( PFONormalizedResidual[ 1 ] );
+					h_ResidualPhi_CH->Fill( PFONormalizedResidual[ 2 ] );
+					h_ErrorEnergy_CH->Fill( PFONormalizedResidual[ 3 ] );
+					h_ErrorTheta_CH->Fill( ThetaError );
+					h_ErrorPhi_CH->Fill( PhiError );
+					h_NormalizedResidualEnergy_CH->Fill( PFONormalizedResidual[ 0 ] / PFONormalizedResidual[ 3 ] );
+					h_NormalizedResidualTheta_CH->Fill( PFONormalizedResidual[ 1 ] / ThetaError );
+					h_NormalizedResidualPhi_CH->Fill( PFONormalizedResidual[ 2 ] / PhiError );
+				}
+
 				h_SigmaPx2->Fill( outputCovMatrix[0] , inputCovMatrix[0] );
 				h_SigmaPxPy->Fill( outputCovMatrix[1] , inputCovMatrix[1] );
 				h_SigmaPy2->Fill( outputCovMatrix[2] , inputCovMatrix[2] );
@@ -406,10 +638,10 @@ void AddFourMomentumCovMatAllPFOs::processEvent( EVENT::LCEvent *pLCEvent )
 			outputPFOMomentum[0]	=	pfoFourMomentum.Px();
 			outputPFOMomentum[1]	=	pfoFourMomentum.Py();
 			outputPFOMomentum[2]	=	pfoFourMomentum.Pz();
-			outputPFOEnergy		=	pfoFourMomentum.E();
+			outputPFOEnergy	=	pfoFourMomentum.E();
 			outputPFO->setType(inputPFO->getType());
 			outputPFO->setMomentum(outputPFOMomentum);
-			outputPFO->setEnergy(outputPFOEnergy);
+			outputPFO->setEnergy( outputPFOEnergy );
 //			outputPFO->setMomentum(inputPFO->getMomentum());
 //			outputPFO->setEnergy(inputPFO->getEnergy());
 			outputPFO->setCovMatrix(outputCovMatrix);
@@ -453,119 +685,201 @@ void AddFourMomentumCovMatAllPFOs::processEvent( EVENT::LCEvent *pLCEvent )
 
 }
 
-std::vector<float> AddFourMomentumCovMatAllPFOs::UpdateNeutralPFOCovMatDirError( TLorentzVector pfoFourMomentum , std::vector<float> clusterDirectionError , float clusterEnergyError )
+TLorentzVector AddFourMomentumCovMatAllPFOs::getLinkedMCP( EVENT::LCEvent *pLCEvent, EVENT::ReconstructedParticle* inputPFO , int nTrackspfo , int nClusterspfo )
 {
+	LCRelationNavigator navClusterMCTruth(pLCEvent->getCollection(m_ClusterMCTruthLinkCollection));
+	LCRelationNavigator navMCTruthCluster(pLCEvent->getCollection(m_MCTruthClusterLinkCollection));
+	LCRelationNavigator navTrackMCTruth(pLCEvent->getCollection(m_TrackMCTruthLinkCollection));
+	LCRelationNavigator navMCTruthTrack(pLCEvent->getCollection(m_MCTruthTrackLinkCollection));
+	streamlog_out(DEBUG) << "PFO has " << nTrackspfo << " tracks and " << nClusterspfo << " clusters" << std::endl;
 
-//	Obtain covariance matrix on (px,py,pz,E) from the
-//	covariance matrix on cluster parameters.
-//
-//	define the jacobian as the 3x4 matrix:
-//
-//
-//
-//			Dpx/DTheta	Dpy/DTheta	Dpz/DTheta	DE/DTheta
-//
-//	 J =		Dpx/DPhi	Dpy/DPhi	Dpz/DPhi	DE/DPhi
-//
-//			Dpx/DE		Dpy/DE		Dpz/DE		DE/DE
-//
-//
-//
-//			Px.Pz/Pt	Py.Pz/Pt	-Pt		0
-//
-//	J =		-Py		Px		0		0
-//
-//			Px.E/P2		Py.E/P2		Pz.E/P2		1
-//
-//
-//
-//	CovMatrix elements in terms of cluster direction error and cluster energy error:
-//
-//			Theta.Theta	Theta.phi	Theta.E
-//
-//	Cov =		phi.Theta	phi.phi		phi.E
-//
-//			E.Theta		E.phi		E.E
-//
-//
-//
-
-	const int rows			= 3; // n rows jacobian
-	const int columns		= 4; // n columns jacobian
-	const int kspace_time_dim	= 4;
-
-	TMatrixD covMatrixMomenta(kspace_time_dim,kspace_time_dim);
-	std::vector<float> covP;
-
-	float pfoPx		=	pfoFourMomentum.Px();
-	float pfoPy		=	pfoFourMomentum.Py();
-	float pfoPz		=	pfoFourMomentum.Pz();
-	float pfoE		=	pfoFourMomentum.E();
-	float pfoPt		=	std::sqrt( pow( pfoPx , 2 ) + pow( pfoPy , 2 ) );
-	float pfoP2		=	std::sqrt( pow( pfoPx , 2 ) + pow( pfoPy , 2 ) + pow( pfoPz , 2 ) );
-	float SigmaTheta2	=	clusterDirectionError[ 0 ];
-	float SigmaThetaSigmaPhi=	clusterDirectionError[ 1 ];
-	float SigmaPhi2		=	clusterDirectionError[ 2 ];
-	float SigmaE2		=	pow( clusterEnergyError , 2 );
-
-	streamlog_out(DEBUG) << "Cluster information obtained" << std::endl;
-
-//	Define array with jacobian matrix elements by rows
-	double jacobian_by_rows[rows*columns] =
+	int NeutralsPDGCode[14]{11,13,22,130,211,310,321,2112,2212,3112,3122,3222,3312,3322};
+//	int ChargedPDGCode[14]{11,13,22,211,321,2212,3112,3122,3222,3312,3322};
+	bool PFOlinkedtoMCP = false;
+	TLorentzVector mcpFourMomentum( 0.0 , 0.0 , 0.0 , 0.0 );
+	if ( nTrackspfo == 0 )
+	{
+		const EVENT::LCObjectVec& mcpvec = navClusterMCTruth.getRelatedToObjects(inputPFO->getClusters()[0]);
+		const EVENT::FloatVec&  mcpweightvec = navClusterMCTruth.getRelatedToWeights(inputPFO->getClusters()[0]);
+		MCParticle *linkedMCP;
+		double maxweightPFOtoMCP = 0.0;
+		int iPFOtoMCPmax = -1;
+		int iMCPtoPFOmax = -1;
+		streamlog_out(DEBUG) << "PFO is neutral (without track), pfoType: " << inputPFO->getType() << " , looking for linked " << mcpvec.size() << " MCPs" << std::endl;
+		for ( unsigned int i_mcp = 0; i_mcp < mcpvec.size(); i_mcp++ )
+		{
+			double mcp_weight = mcpweightvec.at(i_mcp);
+			MCParticle *testMCP = (MCParticle *) mcpvec.at(i_mcp);
+			streamlog_out(DEBUG) << "checking linked MCP at " << i_mcp << " , MCP PDG = " << testMCP->getPDG() << " , link weight = " << mcp_weight << std::endl;
+			if ( mcp_weight > maxweightPFOtoMCP && mcp_weight >= 0.9 )
 			{
-				pfoPx * pfoPz / pfoPt	,	pfoPy * pfoPz / pfoPt	,	-pfoPt			,	0	,
-				-pfoPy			,	pfoPx			,	0			,	0	,
-				pfoPx * pfoE / pfoP2	,	pfoPy * pfoE / pfoP2	,	pfoPz * pfoE / pfoP2	,	1	 
-			};
-
-	streamlog_out(DEBUG) << "Jacobian array formed by rows" << std::endl;
-
-//	construct the Jacobian using previous array ("F" if filling by columns, "C", if filling by rows, $ROOTSYS/math/matrix/src/TMatrixT.cxx)
-	TMatrixD jacobian(rows,columns, jacobian_by_rows, "C");
-	streamlog_out(DEBUG) << "Jacobian array converted to Jacobian matrix" << std::endl;
-
-//	cluster covariance matrix by rows
-	double cluster_cov_matrix_by_rows[rows*rows] =
+				maxweightPFOtoMCP = mcp_weight;
+				iPFOtoMCPmax = i_mcp;
+				streamlog_out(DEBUG) << "linkedMCP: " << i_mcp << " has PDG: " << testMCP->getPDG() << " and PFO to MCP Link has weight = " << mcp_weight << std::endl;
+			}
+		}
+		if ( iPFOtoMCPmax != -1 )
+		{
+			h_NeutPFO_Weight->Fill( maxweightPFOtoMCP );
+			linkedMCP = (MCParticle *) mcpvec.at(iPFOtoMCPmax);
+			streamlog_out(DEBUG) << "Found linked MCP, MCP PDG: " << linkedMCP->getPDG() << " , link weight = " << maxweightPFOtoMCP << std::endl;
+			Cluster *testCluster;
+			const EVENT::LCObjectVec& clustervec = navMCTruthCluster.getRelatedToObjects(linkedMCP);
+			const EVENT::FloatVec&  clusterweightvec = navMCTruthCluster.getRelatedToWeights(linkedMCP);
+			double maxweightMCPtoPFO = 0.;
+			for ( unsigned int i_cluster = 0; i_cluster < clustervec.size(); i_cluster++ )
 			{
-				SigmaTheta2		,	SigmaThetaSigmaPhi	,	0	,
-				SigmaThetaSigmaPhi	,	SigmaPhi2		,	0	,
-				0			,	0			,	SigmaE2	
-			};
-	streamlog_out(DEBUG) << "cluster covariance matrix array formed by rows" << std::endl;
+				double cluster_weight = clusterweightvec.at(i_cluster);
+				testCluster = (Cluster *) clustervec.at(i_cluster);
+				if ( cluster_weight > maxweightMCPtoPFO && cluster_weight >= 0.9 )
+				{
+					maxweightMCPtoPFO = cluster_weight;
+					iMCPtoPFOmax = i_cluster;
+				}
+			}
+			if ( iMCPtoPFOmax != -1 && testCluster == inputPFO->getClusters()[0] )
+			{
+				PFOlinkedtoMCP = true;
+				h_NeutPFO_PDG->Fill( linkedMCP->getPDG() );
+				if ( inputPFO->getType() != 22 ) streamlog_out(DEBUG) << "Initial PFO type: " << inputPFO->getType() << "	, linked MCP PDG(weight): " << linkedMCP->getPDG() << " (" << maxweightPFOtoMCP << ")	, linked-back PFO type(weight): " << inputPFO->getType() << " (" << maxweightMCPtoPFO << ")" << std::endl;
+				bool KnownPFO = false;
+				for ( int l = 0 ; l < 14 ; ++l)
+				{
+					if ( abs( linkedMCP->getPDG() ) == NeutralsPDGCode[ l ] )
+					{
+						h_NeutPFO_TYPE->Fill( l );
+						KnownPFO = true;
+						if ( inputPFO->getType() == 22 )
+						{
+							h_NeutPFO_IDasPhoton->Fill( l );
+						}
+						else
+						{
+							h_NeutPFO_IDasOther->Fill( l );
+						}
+					}
+				}
+				if ( !KnownPFO )
+				{
+					h_NeutPFO_TYPE->Fill( 14 );
+					if ( inputPFO->getType() == 22 )
+					{
+						h_NeutPFO_IDasPhoton->Fill( 14 );
+					}
+					else
+					{
+						h_NeutPFO_IDasOther->Fill( 14 );
+					}
+				}
+				mcpFourMomentum = TLorentzVector( linkedMCP->getMomentum()[0] , linkedMCP->getMomentum()[1] , linkedMCP->getMomentum()[2] , linkedMCP->getEnergy() );
+				h_NHEnergy->Fill( mcpFourMomentum.E() , inputPFO->getEnergy() );
+				h_NH_EclusterPlusMass_Emcp->Fill( mcpFourMomentum.E() , ( inputPFO->getClusters()[0] )->getEnergy() + inputPFO->getMass() );
+			}
+		}
+	}
+	else
+	{
+		for ( int i_trk = 0 ; i_trk < nTrackspfo ; ++i_trk )
+		{
+//			Track* mytrack		= ( inputPFO->getTracks() )[ i_trk ];
+			const EVENT::LCObjectVec& mcpvec = navTrackMCTruth.getRelatedToObjects(inputPFO->getTracks()[ i_trk ]);
+			const EVENT::FloatVec&  mcpweightvec = navTrackMCTruth.getRelatedToWeights(inputPFO->getTracks()[ i_trk ]);
+			MCParticle *linkedMCP;
+			double maxweightPFOtoMCP = 0.0;
+			int iPFOtoMCPmax = -1;
+			int iMCPtoPFOmax = -1;
+//			streamlog_out(DEBUG) << "PFO is neutral (without track), pfoType: " << inputPFO->getType() << " , looking for linked " << mcpvec.size() << " MCPs" << std::endl;
+			int n_mcp = mcpvec.size();
+			for ( int i_mcp = 0; i_mcp < n_mcp; i_mcp++ )
+			{
+				double mcp_weight = mcpweightvec.at(i_mcp);
+				MCParticle *testMCP = (MCParticle *) mcpvec.at(i_mcp);
+				streamlog_out(DEBUG) << "checking linked MCP at " << i_mcp << " , MCP PDG = " << testMCP->getPDG() << " , link weight = " << mcp_weight << std::endl;
+				if ( mcp_weight > maxweightPFOtoMCP && mcp_weight >= 0.9 )
+				{
+					maxweightPFOtoMCP = mcp_weight;
+					iPFOtoMCPmax = i_mcp;
+					streamlog_out(DEBUG) << "linkedMCP: " << i_mcp << " has PDG: " << testMCP->getPDG() << " and PFO to MCP Link has weight = " << mcp_weight << std::endl;
+				}
+			}
 
-	TMatrixD covMatrix_cluster(rows,rows, cluster_cov_matrix_by_rows, "C");
-	streamlog_out(DEBUG) << "cluster covariance matrix array converted to cluster covariance matrix matrix" << std::endl;
+			if ( iPFOtoMCPmax != -1 )
+			{
+//				h_NeutPFO_Weight->Fill( maxweightPFOtoMCP );
+				linkedMCP = (MCParticle *) mcpvec.at(iPFOtoMCPmax);
+				streamlog_out(DEBUG) << "Found linked MCP, MCP PDG: " << linkedMCP->getPDG() << " , link weight = " << maxweightPFOtoMCP << std::endl;
+				Track *testTrack;
+				const EVENT::LCObjectVec& trackvec = navMCTruthTrack.getRelatedToObjects(linkedMCP);
+				const EVENT::FloatVec&  trackweightvec = navMCTruthTrack.getRelatedToWeights(linkedMCP);
+				double maxweightMCPtoPFO = 0.;
+				for ( unsigned int i_track = 0; i_track < trackvec.size(); i_track++ )
+				{
+					double Track_weight = trackweightvec.at(i_track);
+					testTrack = (Track *) trackvec.at(i_track);
+					if ( Track_weight > maxweightMCPtoPFO && Track_weight >= 0.9 )
+					{
+						maxweightMCPtoPFO = Track_weight;
+						iMCPtoPFOmax = i_track;
+					}
+				}
+				if ( iMCPtoPFOmax != -1 && testTrack == inputPFO->getTracks()[ i_trk ] )
+				{
+					PFOlinkedtoMCP = true;
+					h_NeutPFO_PDG->Fill( linkedMCP->getPDG() );
+					if ( inputPFO->getType() != 22 ) streamlog_out(DEBUG) << "Initial PFO type: " << inputPFO->getType() << "	, linked MCP PDG(weight): " << linkedMCP->getPDG() << " (" << maxweightPFOtoMCP << ")	, linked-back PFO type(weight): " << inputPFO->getType() << " (" << maxweightMCPtoPFO << ")" << std::endl;
+					mcpFourMomentum += TLorentzVector( linkedMCP->getMomentum()[0] , linkedMCP->getMomentum()[1] , linkedMCP->getMomentum()[2] , linkedMCP->getEnergy() );
+/*
+					bool KnownPFO = false;
+					for ( int l = 0 ; l < 14 ; ++l)
+					{
+						if ( abs( linkedMCP->getPDG() ) == NeutralsPDGCode[ l ] )
+						{
+							h_NeutPFO_TYPE->Fill( l );
+							KnownPFO = true;
+							if ( inputPFO->getType() == 22 )
+							{
+								h_NeutPFO_IDasPhoton->Fill( l );
+							}
+							else
+							{
+								h_NeutPFO_IDasOther->Fill( l );
+							}
+						}
+					}
+					if ( !KnownPFO )
+					{
+						h_NeutPFO_TYPE->Fill( 14 );
+						if ( inputPFO->getType() == 22 )
+						{
+							h_NeutPFO_IDasPhoton->Fill( 14 );
+						}
+						else
+						{
+							h_NeutPFO_IDasOther->Fill( 14 );
+						}
+					}
+*/				}
+			}
+		}
+	}
 
-	covMatrixMomenta.Mult( TMatrixD( jacobian ,
-					TMatrixD::kTransposeMult ,
-					covMatrix_cluster) ,
-					jacobian
-					);
-	streamlog_out(DEBUG) << "cluster covariance matrix array converted to FourMomentumCovariance matrix" << std::endl;
-
-	covP.push_back( covMatrixMomenta(0,0) ); // x-x
-	covP.push_back( covMatrixMomenta(1,0) ); // y-x
-	covP.push_back( covMatrixMomenta(1,1) ); // y-y
-	covP.push_back( covMatrixMomenta(2,0) ); // z-x
-	covP.push_back( covMatrixMomenta(2,1) ); // z-y
-	covP.push_back( covMatrixMomenta(2,2) ); // z-z
-	covP.push_back( covMatrixMomenta(3,0) ); // e-x
-	covP.push_back( covMatrixMomenta(3,1) ); // e-y
-	covP.push_back( covMatrixMomenta(3,2) ); // e-z
-	covP.push_back( covMatrixMomenta(3,3) ); // e-e
-	streamlog_out(DEBUG) << "FourMomentumCovarianceMatrix Filled succesfully" << std::endl;
-	
-	return covP;
+	if ( PFOlinkedtoMCP )
+	{
+		return mcpFourMomentum;
+	}
+	else
+	{
+		return TLorentzVector( 0.0 , 0.0 , 0.0 , 0.0 );
+	}
 
 }
 
-
-std::vector<float> AddFourMomentumCovMatAllPFOs::UpdateNeutralPFOCovMatPosError( TVector3 clusterPosition , float pfoEnergy , float pfoMass , std::vector<float> clusterPositionError , float clusterEnergyError )
+std::vector<float> AddFourMomentumCovMatAllPFOs::UpdateNeutralPFOCovMat( TVector3 clusterPosition , float pfoEc , float pfoMass , std::vector<float> clusterPositionError , float clusterEnergyError )
 {
 
 //	Obtain covariance matrix on (px,py,pz,E) from the
-//	covariance matrix on cluster parameters.
-//
+//	covariance matrix on cluster parameters (px,py,pz,Ek=Ec=E-E0).
+//	=> E = Ek + m	;	|p| = sqrt( Ek^2 + 2mEk )
 //	define the jacobian as the 4x4 matrix:
 //
 //
@@ -576,32 +890,32 @@ std::vector<float> AddFourMomentumCovMatAllPFOs::UpdateNeutralPFOCovMatPosError(
 //	J =
 //			Dpx/Dz			Dpy/Dz			Dpz/Dz			DE/Dz
 //
-//			Dpx/DE			Dpy/DE			Dpz/DE			DE/DE
+//			Dpx/DEk		Dpy/DEk		Dpz/DEk		DE/DEk
 //
 //
 //
 //
 //
-//			P.(r2-x2)/r3		-P.x.y/r3		-P.x.z/r3		0
+//			|P|.(r2-x2)/r3		-|P|.x.y/r3		-|P|.x.z/r3		0
 //
-//			-P.y.x/r3		P.(r2-y2)/r3		-P.y.z/r3		0
+//			-|P|.y.x/r3		|P|.(r2-y2)/r3		-|P|.y.z/r3		0
 //	J =
-//			-P.z.x/r3		-P.z.y/r3		P.(r2-z2)/r3		0
+//			-|P|.z.x/r3		-|P|.z.y/r3		|P|.(r2-z2)/r3		0
 //
-//			(E/P).(x/r)		(E/P).(y/r)		(E/P).(z/r)		1
+//			(E/|p|).(x/r)		(E/|p|).(y/r)		(E/|p|).(z/r)		1
 //
 //
 //
 //
 //	CovMatrix elements in terms of cluster position error and cluster energy error:
 //
-//			x.x		x.y		x.z		x.E
+//			x.x			x.y			x.z			x.Ec
 //
-//			y.x		y.y		y.z		y.E
+//			y.x			y.y			y.z			y.Ec
 //	Cov =
-//			z.x		z.y		z.z		z.E
+//			z.x			z.y			z.z			z.Ec
 //
-//			E.x		E.y		E.z		E.E
+//			Ec.x			Ec.y			Ec.z			Ec.Ec
 //
 //
 //
@@ -613,6 +927,8 @@ std::vector<float> AddFourMomentumCovMatAllPFOs::UpdateNeutralPFOCovMatPosError(
 	TMatrixD covMatrixMomenta(kspace_time_dim,kspace_time_dim);
 	std::vector<float> covP;
 
+//	pfoMass			= 0.0;
+
 	float pfoX		=	clusterPosition.X();
 	float pfoY		=	clusterPosition.Y();
 	float pfoZ		=	clusterPosition.Z();
@@ -622,10 +938,8 @@ std::vector<float> AddFourMomentumCovMatAllPFOs::UpdateNeutralPFOCovMatPosError(
 	float pfoZ2		=	pow( pfoZ , 2 );
 	float pfoR2		=	pow( pfoR , 2 );
 	float pfoR3		=	pow( pfoR , 3 );
-	float pfoE		=	pfoEnergy;
-//	float pfoP		=	clusterEnergy;
-//	float pfoE		=	std::sqrt( pow( pfoP , 2 ) + pow( pfoMass , 2 ) );
-	float pfoP		=	std::sqrt( pow( pfoE , 2 ) - pow( pfoMass , 2 ) );
+	float pfoE		=	pfoEc + pfoMass;
+	float pfoP		=	sqrt( pow( pfoEc , 2 ) + 2 * pfoMass * pfoEc );
 	float SigmaX2		=	clusterPositionError[ 0 ];
 	float SigmaXY		=	clusterPositionError[ 1 ];
 	float SigmaY2		=	clusterPositionError[ 2 ];
@@ -639,9 +953,9 @@ std::vector<float> AddFourMomentumCovMatAllPFOs::UpdateNeutralPFOCovMatPosError(
 //	Define array with jacobian matrix elements by rows
 	double jacobian_by_rows[rows*columns] =
 			{
-				pfoP * ( pfoR2 - pfoX2 ) / pfoR3	,	-pfoP * pfoX * pfoY / pfoR3		,	-pfoP * pfoX * pfoZ / pfoR3		,	0	,
-				-pfoP * pfoY * pfoX / pfoR3		,	pfoP * ( pfoR2 - pfoY2 ) / pfoR3	,	-pfoP * pfoY * pfoZ / pfoR3		,	0	,
-				-pfoP * pfoZ * pfoX / pfoR3		,	-pfoP * pfoZ * pfoY / pfoR3		,	pfoP * ( pfoR2 - pfoZ2 ) / pfoR3	,	0	,
+				pfoP * ( pfoR2 - pfoX2 ) / pfoR3	,	-pfoP * pfoX * pfoY / pfoR3		,	-pfoP * pfoX * pfoZ / pfoR3		,	0		,
+				-pfoP * pfoY * pfoX / pfoR3		,	pfoP * ( pfoR2 - pfoY2 ) / pfoR3	,	-pfoP * pfoY * pfoZ / pfoR3		,	0		,
+				-pfoP * pfoZ * pfoX / pfoR3		,	-pfoP * pfoZ * pfoY / pfoR3		,	pfoP * ( pfoR2 - pfoZ2 ) / pfoR3	,	0		,
 				pfoE * pfoX / ( pfoP * pfoR )		,	pfoE * pfoY / ( pfoP * pfoR )		,	pfoE * pfoZ / ( pfoP * pfoR )		,	1
 			};
 
@@ -657,7 +971,7 @@ std::vector<float> AddFourMomentumCovMatAllPFOs::UpdateNeutralPFOCovMatPosError(
 				SigmaX2		,	SigmaXY		,	SigmaXZ		,	0	,
 				SigmaXY		,	SigmaY2		,	SigmaYZ		,	0	,
 				SigmaXZ		,	SigmaYZ		,	SigmaZ2		,	0	,
-				0		,	0		,	0		,	SigmaE2	
+				0			,	0			,	0			,	SigmaE2
 			};
 	streamlog_out(DEBUG) << "cluster covariance matrix array formed by rows" << std::endl;
 
@@ -682,7 +996,7 @@ std::vector<float> AddFourMomentumCovMatAllPFOs::UpdateNeutralPFOCovMatPosError(
 	covP.push_back( covMatrixMomenta(3,2) ); // e-z
 	covP.push_back( covMatrixMomenta(3,3) ); // e-e
 	streamlog_out(DEBUG) << "FourMomentumCovarianceMatrix Filled succesfully" << std::endl;
-	
+
 	return covP;
 
 }
@@ -733,21 +1047,21 @@ std::vector<float> AddFourMomentumCovMatAllPFOs::UpdateChargedPFOCovMat( EVENT::
 	std::vector<float> covP;
 
 	double trackTanLambda		=	MyTrack->getTanLambda();
-	double trackPhi			=	MyTrack->getPhi();
+	double trackPhi		=	MyTrack->getPhi();
 	double trackOmega		=	MyTrack->getOmega();
-	std::vector<float> trackCovMat	=	MyTrack->getCovMatrix();
+	std::vector<float> trackCovMat =	MyTrack->getCovMatrix();
 	double trackPt			=	eB / fabs( trackOmega );
 	double trackPx			= 	trackPt * TMath::Cos( trackPhi );
 	double trackPy			= 	trackPt * TMath::Sin( trackPhi );
 	double trackPz			= 	trackPt * trackTanLambda;
 	double trackP			= 	std::sqrt( pow( trackPt , 2 ) + pow( trackPz , 2 ) );
 	double trackE			= 	std::sqrt( pow( trackP , 2 ) + pow( trackMass , 2 ) );
-	
-	float SigmaPhi2			=	trackCovMat[  2 ];
+
+	float SigmaPhi2		=	trackCovMat[  2 ];
 	float SigmaPhiSigmaOmega	=	trackCovMat[  4 ];
 	float SigmaOmega2		=	trackCovMat[  5 ];
 	float SigmaTanLambdaSigmaPhi	=	trackCovMat[ 11 ];
-	float SigmaTanLambdaSigmaOmega	=	trackCovMat[ 12 ];
+	float SigmaTanLambdaSigmaOmega =	trackCovMat[ 12 ];
 	float SigmaTanLambda2		=	trackCovMat[ 14 ];
 
 	streamlog_out(DEBUG) << "track information obtained" << std::endl;
@@ -756,8 +1070,8 @@ std::vector<float> AddFourMomentumCovMatAllPFOs::UpdateChargedPFOCovMat( EVENT::
 	double jacobian_by_rows[rows*columns] =
 	{
 		0			,	0			,	trackPt			,	trackPz * trackPt / trackE			,
-		-trackPy		,	trackPx			,	0			,	0						,
-		-trackPx / trackOmega	,	-trackPy / trackOmega	,	-trackPz / trackOmega	,	-trackP * trackP / ( trackE * trackOmega )	 
+		-trackPy		,	trackPx		,	0				,	0						,
+		-trackPx / trackOmega	,	-trackPy / trackOmega	,	-trackPz / trackOmega		,	-trackP * trackP / ( trackE * trackOmega )
 	};
 
 	streamlog_out(DEBUG) << "Jacobian array formed by rows" << std::endl;
@@ -771,7 +1085,7 @@ std::vector<float> AddFourMomentumCovMatAllPFOs::UpdateChargedPFOCovMat( EVENT::
 	{
 		SigmaTanLambda2			,	SigmaTanLambdaSigmaPhi		,	SigmaTanLambdaSigmaOmega	,
 		SigmaTanLambdaSigmaPhi		,	SigmaPhi2			,	SigmaPhiSigmaOmega	,
-		SigmaTanLambdaSigmaOmega	,	SigmaPhiSigmaOmega		,	SigmaOmega2	
+		SigmaTanLambdaSigmaOmega	,	SigmaPhiSigmaOmega		,	SigmaOmega2
 	};
 	streamlog_out(DEBUG) << "track covariance matrix array formed by rows" << std::endl;
 
@@ -796,7 +1110,7 @@ std::vector<float> AddFourMomentumCovMatAllPFOs::UpdateChargedPFOCovMat( EVENT::
 	covP.push_back( covMatrixMomenta(3,2) ); // e-z
 	covP.push_back( covMatrixMomenta(3,3) ); // e-e
 	streamlog_out(DEBUG) << "FourMomentumCovarianceMatrix Filled succesfully" << std::endl;
-	
+
 	return covP;
 
 }
@@ -818,15 +1132,15 @@ double AddFourMomentumCovMatAllPFOs::getTrackMass( EVENT::LCEvent *pLCEvent, EVE
 		n_TRK = MarlinTrkTracks->getNumberOfElements();
 		n_TRKk = MarlinTrkTracksKAON->getNumberOfElements();
 		n_TRKp = MarlinTrkTracksPROTON->getNumberOfElements();
-		
+
 		if ( ( n_TRKk != n_TRK ) || ( n_TRKp != n_TRK ) )
 		{
 			streamlog_out(WARNING) << " Number of tracks in refitted MarlinTrkTrack Collections (pion, proton and kaon) mis-match" << std::endl;
-			return 0.0; 
+			return 0.0;
 		}
 		for (int i_trk = 0 ; i_trk < n_TRK ; ++i_trk )
 		{
-			Track *protonTrack = dynamic_cast<EVENT::Track*>(MarlinTrkTracksPROTON->getElementAt(i_trk)); 
+			Track *protonTrack = dynamic_cast<EVENT::Track*>(MarlinTrkTracksPROTON->getElementAt(i_trk));
 			Track *kaonTrack = dynamic_cast<EVENT::Track*>(MarlinTrkTracksKAON->getElementAt(i_trk));
 			if ( inputTrk == protonTrack )
 			{
@@ -849,6 +1163,77 @@ double AddFourMomentumCovMatAllPFOs::getTrackMass( EVENT::LCEvent *pLCEvent, EVE
           streamlog_out(MESSAGE) << "Input Track collections not found in event " << m_nEvt << std::endl;
           return 0.0;
         }
+
+}
+
+std::vector<float> AddFourMomentumCovMatAllPFOs::getPFONormalizedResidual( TLorentzVector pfoFourMomentum , TLorentzVector mcpFourMomentum , std::vector<float> pfoCovMat )
+{
+	std::vector<float> pfoError;
+
+	float pfoPx		= pfoFourMomentum.Px();
+	float pfoPy		= pfoFourMomentum.Py();
+	float pfoPz		= pfoFourMomentum.Pz();
+	float pfoE		= pfoFourMomentum.E();
+	TVector3 pfoPvec( pfoPx , pfoPy , pfoPz ); pfoPvec.SetMag(1.0);
+	TVector3 pfoPTvec( pfoPx , pfoPy , 0.0 ); pfoPTvec.SetMag(1.0);
+	float pfoTheta		= pfoPvec.Theta();
+	float pfoPhi		= pfoPvec.Phi();
+	float pfoP2		= pow( pfoPx , 2 ) + pow( pfoPy , 2 ) + pow( pfoPz , 2 );
+	float pfoPt2		= pow( pfoPx , 2 ) + pow( pfoPy , 2 );
+	float pfoPt		= sqrt( pfoPt2 );
+	streamlog_out(DEBUG) << "PFO 4-Momentum ( px , py , pz , E , Theta , Phi ) = ( " << pfoPx << " , " << pfoPy << " , " << pfoPz << " , " << pfoE << " , " << pfoTheta << " , " << pfoPhi << " )" << std::endl;
+
+	float mcpPx		= mcpFourMomentum.Px();
+	float mcpPy		= mcpFourMomentum.Py();
+	float mcpPz		= mcpFourMomentum.Pz();
+	float mcpE		= mcpFourMomentum.E();
+	TVector3 mcpPvec( mcpPx , mcpPy , mcpPz ); mcpPvec.SetMag(1.0);
+	TVector3 mcpPTvec( mcpPx , mcpPy , 0.0 ); mcpPTvec.SetMag(1.0);
+	float mcpTheta		= mcpPvec.Theta();
+	float mcpPhi		= mcpPvec.Phi();
+	streamlog_out(DEBUG) << "MCP 4-Momentum ( px , py , pz , E , Theta , Phi ) = ( " << mcpPx << " , " << mcpPy << " , " << mcpPz << " , " << mcpE << " , " << mcpTheta << " , " << mcpPhi << " )" << std::endl;
+	
+	float Sigpx2		= pfoCovMat[0];
+	float SigpxSigpy	= pfoCovMat[1];
+	float Sigpy2		= pfoCovMat[2];
+	float SigpxSigpz	= pfoCovMat[3];
+	float SigpySigpz	= pfoCovMat[4];
+	float Sigpz2		= pfoCovMat[5];
+	float Sige2		= pfoCovMat[9];
+
+	float Dth_Dpx		= pfoPx * pfoPz / ( pfoP2 * pfoPt );
+	float Dth_Dpy		= pfoPy * pfoPz / ( pfoP2 * pfoPt );
+	float Dth_Dpz		= -pfoPt / pfoP2;
+
+	float Dphi_Dpx		= -pfoPy / pfoPt2;
+	float Dphi_Dpy		= pfoPx / pfoPt2;
+
+	float pfoEnergyErr	= std::sqrt( Sige2 );
+	float pfoThetaErr	= std::sqrt( std::fabs( Sigpx2 * std::pow( Dth_Dpx , 2 ) + Sigpy2 * std::pow( Dth_Dpy , 2 ) + Sigpz2 * std::pow( Dth_Dpz , 2 ) + 2 * ( SigpxSigpy * Dth_Dpx * Dth_Dpy ) + 2 * ( SigpySigpz * Dth_Dpy * Dth_Dpz ) + 2 * ( SigpxSigpz * Dth_Dpx * Dth_Dpz ) ) );
+	float pfoPhiErr	= std::sqrt( std::fabs( Sigpx2 * std::pow( Dphi_Dpx , 2 ) + Sigpy2 * std::pow( Dphi_Dpy , 2 ) + 2 * ( SigpxSigpy * Dphi_Dpx * Dphi_Dpy ) ) );
+	
+	float ResidualEnergy	= pfoE - mcpE;
+	float ResidualTheta	= pfoTheta - mcpTheta;
+	float ResidualPhi	= 0.0;
+	if ( pfoPhi > mcpPhi )
+	{
+		ResidualPhi	= acos( pfoPTvec.Dot( mcpPTvec ) );
+	}
+	else
+	{
+		ResidualPhi	= -acos( pfoPTvec.Dot( mcpPTvec ) );
+	}
+	streamlog_out(DEBUG) << "	Residuals	( deltaE , deltaTheta , deltaPhi ) = ( " << ResidualEnergy << "	,	" << ResidualTheta << "	, " << ResidualPhi << "	)" << std::endl;
+	streamlog_out(DEBUG) << "	Errors		( sigmaE , sigmaTheta , sigmaPhi ) = ( " << pfoEnergyErr << "	,	" << pfoThetaErr << "	,	" << pfoPhiErr << "	)" << std::endl;
+	
+	pfoError.push_back( ResidualEnergy );
+	pfoError.push_back( ResidualTheta );
+	pfoError.push_back( ResidualPhi );
+	pfoError.push_back( pfoEnergyErr );
+	pfoError.push_back( pfoThetaErr );
+	pfoError.push_back( pfoPhiErr );
+	
+	return pfoError;
 
 }
 
@@ -878,9 +1263,22 @@ void AddFourMomentumCovMatAllPFOs::end()
 
 	m_pTFile->cd();
 	m_pTTree->Write();
+	m_Histograms->cd();
 	h_nTracks_PFOCharge->Write();
 	h_nClusters_nTracks->Write();
 	h_clusterE_pfoE->Write();
+	h_NeutPFO_PDG->Write();
+	h_NeutPFO_TYPE->Write();
+	h_NeutPFO_IDasPhoton->Write();
+	h_NeutPFO_IDasOther->Write();
+	h_NeutPFO_Mass->Write();
+	h_EP_photons->Write();
+	h_EP_NeutralHadrons->Write();
+	h_NeutPFO_Weight->Write();
+	h_NH_EclusterPlusMass_Emcp->Write();
+	h_NHEnergy->Write();
+	m_CovMatElements->cd();
+	m_NeutralPFOswithoutTrak->cd();
 	h_SigmaPx2nT->Write();
 	h_SigmaPxPynT->Write();
 	h_SigmaPy2nT->Write();
@@ -891,6 +1289,8 @@ void AddFourMomentumCovMatAllPFOs::end()
 	h_SigmaPyEnT->Write();
 	h_SigmaPzEnT->Write();
 	h_SigmaE2nT->Write();
+	m_CovMatElements->cd();
+	m_NeutralPFOswith2Trak->cd();
 	h_SigmaPx2T->Write();
 	h_SigmaPxPyT->Write();
 	h_SigmaPy2T->Write();
@@ -900,6 +1300,8 @@ void AddFourMomentumCovMatAllPFOs::end()
 	h_SigmaPxET->Write();
 	h_SigmaPyET->Write();
 	h_SigmaPzET->Write();
+	m_CovMatElements->cd();
+	m_ChargedPFOs->cd();
 	h_SigmaE2T->Write();
 	h_SigmaPx2->Write();
 	h_SigmaPxPy->Write();
@@ -911,6 +1313,41 @@ void AddFourMomentumCovMatAllPFOs::end()
 	h_SigmaPyE->Write();
 	h_SigmaPzE->Write();
 	h_SigmaE2->Write();
+	m_CovMatElements->cd();
+	m_Histograms->cd();
+	m_ErrorParameterization->cd();
+	m_Photon->cd();
+	h_ResidualEnergy_ph->Write();
+	h_ResidualTheta_ph->Write();
+	h_ResidualPhi_ph->Write();
+	h_ErrorEnergy_ph->Write();
+	h_ErrorTheta_ph->Write();
+	h_ErrorPhi_ph->Write();
+	h_NormalizedResidualEnergy_ph->Write();
+	h_NormalizedResidualTheta_ph->Write();
+	h_NormalizedResidualPhi_ph->Write();
+	m_ErrorParameterization->cd();
+	m_NeutralPFO->cd();
+	h_ResidualEnergy_NH->Write();
+	h_ResidualTheta_NH->Write();
+	h_ResidualPhi_NH->Write();
+	h_ErrorEnergy_NH->Write();
+	h_ErrorTheta_NH->Write();
+	h_ErrorPhi_NH->Write();
+	h_NormalizedResidualEnergy_NH->Write();
+	h_NormalizedResidualTheta_NH->Write();
+	h_NormalizedResidualPhi_NH->Write();
+	m_ErrorParameterization->cd();
+	m_ChargedPFO->cd();
+	h_ResidualEnergy_CH->Write();
+	h_ResidualTheta_CH->Write();
+	h_ResidualPhi_CH->Write();
+	h_ErrorEnergy_CH->Write();
+	h_ErrorTheta_CH->Write();
+	h_ErrorPhi_CH->Write();
+	h_NormalizedResidualEnergy_CH->Write();
+	h_NormalizedResidualTheta_CH->Write();
+	h_NormalizedResidualPhi_CH->Write();
 	m_pTFile->Close();
 	delete m_pTFile;
 

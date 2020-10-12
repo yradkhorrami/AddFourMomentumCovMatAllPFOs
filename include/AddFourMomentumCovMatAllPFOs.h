@@ -27,6 +27,7 @@
 #include <TTree.h>
 
 class TFile;
+class TDirectory;
 class TH1F;
 class TH1I;
 class TH2I;
@@ -52,21 +53,30 @@ class AddFourMomentumCovMatAllPFOs : public Processor
 		virtual void Clear();
 		virtual void processRunHeader();
 		virtual void processEvent( EVENT::LCEvent *pLCEvent );
-		std::vector<float> UpdateNeutralPFOCovMatDirError( TLorentzVector pfoFourMomentum , std::vector<float> clusterDirectionError , float clusterEnergyError );
-		std::vector<float> UpdateNeutralPFOCovMatPosError( TVector3 clusterPosition , float pfoEnergy , float pfoMass , std::vector<float> clusterPositionError , float clusterEnergyError );
+		std::vector<float> UpdateNeutralPFOCovMat( TVector3 clusterPosition , float pfoEc , float pfoMass , std::vector<float> clusterPositionError , float clusterEnergyError );
 		std::vector<float> UpdateChargedPFOCovMat( EVENT::Track* MyTrack , float trackMass );
+		std::vector<float> getPFONormalizedResidual( TLorentzVector pfoFourMomentum , TLorentzVector mcpFourMomentum , std::vector<float> pfoCovMat );
 		double getTrackMass( EVENT::LCEvent *pLCEvent, EVENT::Track* inputTrk );
+		TLorentzVector getLinkedMCP( EVENT::LCEvent *pLCEvent, EVENT::ReconstructedParticle* inputPFO , int nTrackspfo , int nClusterspfo );
 		virtual void check( EVENT::LCEvent *pLCEvent );
 		virtual void end();
 
 	private:
 		std::string				m_inputPfoCollection{};
+		std::string				m_ClusterMCTruthLinkCollection{};
+		std::string				m_MCTruthClusterLinkCollection{};
+		std::string				m_TrackMCTruthLinkCollection{};
+		std::string				m_MCTruthTrackLinkCollection{};
 		std::string				m_outputPfoCollection{};
 		std::string				m_rootFile{};
 		std::string				m_MarlinTrkTracks{};
 		std::string				m_MarlinTrkTracksKAON{};
 		std::string				m_MarlinTrkTracksPROTON{};
 
+		bool					m_updateNormalNeutrals = false;
+		bool					m_updateNeutrals_wTrack = false;
+		bool					m_updateCharged = false;
+		bool					m_AssumeNeutralPFOMassive = false;
 		bool					m_useClusterPositionError = true;
 		int					m_nRun;
 		int					m_nEvt;
@@ -85,6 +95,15 @@ class AddFourMomentumCovMatAllPFOs : public Processor
 		double					pion_mass_sq;
 		TFile					*m_pTFile;
 	        TTree					*m_pTTree;
+	        TDirectory				*m_Histograms;
+	        TDirectory				*m_CovMatElements;
+	        TDirectory				*m_NeutralPFOswithoutTrak;
+	        TDirectory				*m_NeutralPFOswith2Trak;
+	        TDirectory				*m_ChargedPFOs;
+	        TDirectory				*m_ErrorParameterization;
+	        TDirectory				*m_Photon;
+	        TDirectory				*m_NeutralPFO;
+	        TDirectory				*m_ChargedPFO;
 		TH2I					*h_nTracks_PFOCharge{};
 		TH2I					*h_nClusters_nTracks{};
 		TH2F					*h_clusterE_pfoE{};
@@ -118,6 +137,43 @@ class AddFourMomentumCovMatAllPFOs : public Processor
 		TH2F					*h_SigmaPyE{};
 		TH2F					*h_SigmaPzE{};
 		TH2F					*h_SigmaE2{};
+		TH1I					*h_NeutPFO_PDG{};
+		TH1I					*h_NeutPFO_TYPE{};
+		TH1I					*h_NeutPFO_IDasPhoton{};
+		TH1I					*h_NeutPFO_IDasOther{};
+		TH1F					*h_NeutPFO_Mass{};
+		TH2F					*h_EP_photons{};
+		TH2F					*h_EP_NeutralHadrons{};
+		TH1F					*h_NeutPFO_Weight{};
+		TH1F					*h_ResidualEnergy_ph{};
+		TH1F					*h_ResidualTheta_ph{};
+		TH1F					*h_ResidualPhi_ph{};
+		TH1F					*h_ErrorEnergy_ph{};
+		TH1F					*h_ErrorTheta_ph{};
+		TH1F					*h_ErrorPhi_ph{};
+		TH1F					*h_NormalizedResidualEnergy_ph{};
+		TH1F					*h_NormalizedResidualTheta_ph{};
+		TH1F					*h_NormalizedResidualPhi_ph{};
+		TH1F					*h_ResidualEnergy_NH{};
+		TH1F					*h_ResidualTheta_NH{};
+		TH1F					*h_ResidualPhi_NH{};
+		TH1F					*h_ErrorEnergy_NH{};
+		TH1F					*h_ErrorTheta_NH{};
+		TH1F					*h_ErrorPhi_NH{};
+		TH1F					*h_NormalizedResidualEnergy_NH{};
+		TH1F					*h_NormalizedResidualTheta_NH{};
+		TH1F					*h_NormalizedResidualPhi_NH{};
+		TH1F					*h_ResidualEnergy_CH{};
+		TH1F					*h_ResidualTheta_CH{};
+		TH1F					*h_ResidualPhi_CH{};
+		TH1F					*h_ErrorEnergy_CH{};
+		TH1F					*h_ErrorTheta_CH{};
+		TH1F					*h_ErrorPhi_CH{};
+		TH1F					*h_NormalizedResidualEnergy_CH{};
+		TH1F					*h_NormalizedResidualTheta_CH{};
+		TH1F					*h_NormalizedResidualPhi_CH{};
+		TH2F					*h_NH_EclusterPlusMass_Emcp{};
+		TH2F					*h_NHEnergy{};
 
 };
 #endif
