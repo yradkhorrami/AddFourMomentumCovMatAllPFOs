@@ -484,8 +484,21 @@ void AddFourMomentumCovMatAllPFOs::processEvent( EVENT::LCEvent *pLCEvent )
 					if ( mcpFourMomentum.E() != 0 )
 					{
 						PFONormalizedResidual = this->getPFONormalizedResidual( pfoFourMomentum , mcpFourMomentum , outputCovMatrix );
-						float ThetaError = PFONormalizedResidual[ 4 ];
-						float PhiError = PFONormalizedResidual[ 5 ];
+						float ThetaError;
+						float PhiError;
+						float EnergyError;
+						if ( m_useClusterPositionError )
+						{
+							EnergyError = PFONormalizedResidual[ 3 ];
+							ThetaError = PFONormalizedResidual[ 4 ];
+							PhiError = PFONormalizedResidual[ 5 ];
+						}
+						else
+						{
+							EnergyError = clusterEnergyError;
+							ThetaError = sqrt ( clusterDirectionError[ 0 ] );
+							PhiError = sqrt ( clusterDirectionError[ 2 ] );
+						}
 						if ( inputPFO->getType() == 22 )
 						{
 							h_ResidualEnergy_ph->Fill( PFONormalizedResidual[ 0 ] );

@@ -45,7 +45,9 @@
 		<processor name="InitDD4hep" condition="" />
 		<processor name="MyAIDAProcessor"/>
 		<processor name="MyAddFourMomentumCovMatAllPFOs_massless"/>
+		<processor name="MyAddFourMomentumCovMatAllPFOs_massless_dir"/>
 		<processor name="MyAddFourMomentumCovMatAllPFOs_massive"/>
+		<processor name="MyAddFourMomentumCovMatAllPFOs_massive_dir"/>
 		<!--processor name="MyLCIOOutputProcessor"/-->
 	</execute>
 
