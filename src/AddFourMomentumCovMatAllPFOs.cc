@@ -215,10 +215,22 @@ h_NHEnergy(NULL)
 					bool(false)
 				);
 
+	registerProcessorParameter(	"isClusterEnergyKinEnergy",
+					"true: the cluster energy is interpreted as kinetic energy of PFO, false: the cluster energy is interpreted as momentum magnitude of PFO",
+					m_isClusterEnergyKinEnergy,
+					bool(false)
+				);
+
 	registerProcessorParameter(	"useClusterPositionError",
 					"true: use cluster position error for CovMat, false: use cluster direction error for CovMat",
 					m_useClusterPositionError,
 					bool(true)
+				);
+
+	registerProcessorParameter(	"updatePFO4Momentum",
+					"true: Update 4-momentum of PFOs, false: set 4-momentum for PFOs same as input PFO",
+					m_updatePFO4Momentum,
+					bool(false)
 				);
 
 	registerProcessorParameter(	"RootFile",
@@ -432,22 +444,23 @@ void AddFourMomentumCovMatAllPFOs::processEvent( EVENT::LCEvent *pLCEvent )
 			float pfoMass		= inputPFO->getMass();
 			std::vector<float> outputCovMatrix( 10, 0.0 );
 			std::vector<float> inputCovMatrix( 10, 0.0 );
+			inputCovMatrix = inputPFO->getCovMatrix();
 			outputCovMatrix = inputCovMatrix;
 			TLorentzVector mcpFourMomentum( 0.0 , 0.0 , 0.0 , 0.0 );
 			std::vector<float> PFONormalizedResidual( 9 , 0.0 );
+			std::vector<float> PFOCoordinateError( 6 , 0.0 );
 			mcpFourMomentum = this->getLinkedMCP( pLCEvent , inputPFO, nTrackspfo , nClusterspfo );
-			inputCovMatrix = inputPFO->getCovMatrix();
 			if ( pfoCharge == 0)
 			{
 				h_nClusters_nTracks->Fill( nClusterspfo , nTrackspfo );
-				if ( nTrackspfo == 0 && m_updateNormalNeutrals )
+				if ( nTrackspfo == 0 )
 				{
-					
+
 					streamlog_out(DEBUG) << "PFO is neutral without track, CovMatrix is set using cluster information" << std::endl;
 					float pfoP2 = pow( inputPFO->getMomentum()[0] , 2 ) + pow( inputPFO->getMomentum()[1] , 2 ) + pow( inputPFO->getMomentum()[2] , 2 );
 					float pfoE2 = pow ( inputPFO->getEnergy() , 2 );
 					h_NeutPFO_Mass->Fill( inputPFO->getMass() );
-					
+
 					if ( !m_AssumeNeutralPFOMassive ) pfoMass = 0.0;
 					if ( inputPFO->getType() == 22 )
 					{
@@ -458,17 +471,27 @@ void AddFourMomentumCovMatAllPFOs::processEvent( EVENT::LCEvent *pLCEvent )
 						h_EP_NeutralHadrons->Fill( pfoP2 , pfoE2 );
 					}
 					float clusterEnergy	= ( inputPFO->getClusters()[0] )->getEnergy();
-					float pfoEnergy		= inputPFO->getEnergy();
 					float clusterX		= ( inputPFO->getClusters()[0] )->getPosition()[0];
 					float clusterY		= ( inputPFO->getClusters()[0] )->getPosition()[1];
 					float clusterZ		= ( inputPFO->getClusters()[0] )->getPosition()[2];
-					clusterPosition	= TVector3( clusterX , clusterY , clusterZ );
+					clusterPosition		= TVector3( clusterX , clusterY , clusterZ );
 					float clusterDistance	= sqrt( pow( clusterX , 2 ) + pow( clusterY , 2 ) + pow( clusterZ , 2 ) );
-					float pfoMomentumMag	= sqrt( pow( clusterEnergy , 2 ) + 2 * pfoMass * clusterEnergy );
+					float pfoMomentumMag	= 0;
+					float pfoEnergy		= 0;
+					if ( m_isClusterEnergyKinEnergy )
+					{
+						pfoMomentumMag	= sqrt( pow( clusterEnergy , 2 ) + 2 * pfoMass * clusterEnergy );
+						pfoEnergy	= clusterEnergy + pfoMass;
+					}
+					else
+					{
+						pfoMomentumMag	= inputPFO->getEnergy();
+						pfoEnergy	= sqrt( pow( pfoMomentumMag , 2 ) + pow( pfoMass , 2 ) );
+					}
 					float pfoPx;
 					float pfoPy;
 					float pfoPz;
-					
+
 					std::vector<float> clusterDirectionError = ( inputPFO->getClusters()[0] )->getDirectionError();
 					std::vector<float> clusterPositionError = ( inputPFO->getClusters()[0] )->getPositionError();
 					float clusterEnergyError= ( inputPFO->getClusters()[0] )->getEnergyError();
@@ -478,15 +501,16 @@ void AddFourMomentumCovMatAllPFOs::processEvent( EVENT::LCEvent *pLCEvent )
 					pfoPy	= pfoMomentumMag * clusterY / clusterDistance;
 					pfoPz	= pfoMomentumMag * clusterZ / clusterDistance;
 					TVector3 pfoMomentum( pfoPx , pfoPy , pfoPz );
-					pfoFourMomentum	= TLorentzVector( pfoMomentum , clusterEnergy + pfoMass );
+					pfoFourMomentum	= TLorentzVector( pfoMomentum , pfoEnergy );
 //					outputCovMatrix	= this->UpdateNeutralPFOCovMat( clusterPosition , clusterEnergy , pfoMass , clusterPositionError , clusterEnergyError );
-					outputCovMatrix	= this->UpdateNeutralPFOCovMat( clusterPosition , pfoEnergy , pfoMass , clusterPositionError , clusterEnergyError );
+					if ( m_updateNormalNeutrals ) outputCovMatrix	= this->UpdateNeutralPFOCovMat( clusterPosition , pfoEnergy , pfoMass , clusterPositionError , clusterEnergyError );
 					if ( mcpFourMomentum.E() != 0 )
 					{
 						PFONormalizedResidual = this->getPFONormalizedResidual( pfoFourMomentum , mcpFourMomentum , outputCovMatrix );
+						PFOCoordinateError = this->getCovMatinPolarCord( clusterPosition , clusterPositionError );
+						float EnergyError;
 						float ThetaError;
 						float PhiError;
-						float EnergyError;
 						if ( m_useClusterPositionError )
 						{
 							EnergyError = PFONormalizedResidual[ 3 ];
@@ -496,18 +520,18 @@ void AddFourMomentumCovMatAllPFOs::processEvent( EVENT::LCEvent *pLCEvent )
 						else
 						{
 							EnergyError = clusterEnergyError;
-							ThetaError = sqrt ( clusterDirectionError[ 0 ] );
-							PhiError = sqrt ( clusterDirectionError[ 2 ] );
+							ThetaError = sqrt ( PFOCoordinateError[ 2 ] );
+							PhiError = sqrt ( PFOCoordinateError[ 5 ] );
 						}
 						if ( inputPFO->getType() == 22 )
 						{
 							h_ResidualEnergy_ph->Fill( PFONormalizedResidual[ 0 ] );
 							h_ResidualTheta_ph->Fill( PFONormalizedResidual[ 1 ] );
 							h_ResidualPhi_ph->Fill( PFONormalizedResidual[ 2 ] );
-							h_ErrorEnergy_ph->Fill( PFONormalizedResidual[ 3 ] );
+							h_ErrorEnergy_ph->Fill( EnergyError );
 							h_ErrorTheta_ph->Fill( ThetaError );
 							h_ErrorPhi_ph->Fill( PhiError );
-							h_NormalizedResidualEnergy_ph->Fill( PFONormalizedResidual[ 0 ] / PFONormalizedResidual[ 3 ] );
+							h_NormalizedResidualEnergy_ph->Fill( PFONormalizedResidual[ 0 ] / EnergyError );
 							h_NormalizedResidualTheta_ph->Fill( PFONormalizedResidual[ 1 ] / ThetaError );
 							h_NormalizedResidualPhi_ph->Fill( PFONormalizedResidual[ 2 ] / PhiError );
 						}
@@ -516,10 +540,10 @@ void AddFourMomentumCovMatAllPFOs::processEvent( EVENT::LCEvent *pLCEvent )
 							h_ResidualEnergy_NH->Fill( PFONormalizedResidual[ 0 ] );
 							h_ResidualTheta_NH->Fill( PFONormalizedResidual[ 1 ] );
 							h_ResidualPhi_NH->Fill( PFONormalizedResidual[ 2 ] );
-							h_ErrorEnergy_NH->Fill( PFONormalizedResidual[ 3 ] );
+							h_ErrorEnergy_NH->Fill( EnergyError );
 							h_ErrorTheta_NH->Fill( ThetaError );
 							h_ErrorPhi_NH->Fill( PhiError );
-							h_NormalizedResidualEnergy_NH->Fill( PFONormalizedResidual[ 0 ] / PFONormalizedResidual[ 3 ] );
+							h_NormalizedResidualEnergy_NH->Fill( PFONormalizedResidual[ 0 ] / EnergyError );
 							h_NormalizedResidualTheta_NH->Fill( PFONormalizedResidual[ 1 ] / ThetaError );
 							h_NormalizedResidualPhi_NH->Fill( PFONormalizedResidual[ 2 ] / PhiError );
 						}
@@ -536,7 +560,7 @@ void AddFourMomentumCovMatAllPFOs::processEvent( EVENT::LCEvent *pLCEvent )
 					h_SigmaPzEnT->Fill( outputCovMatrix[8] , inputCovMatrix[8] );
 					h_SigmaE2nT->Fill( outputCovMatrix[9] , inputCovMatrix[9] );
 				}
-				else if ( nTrackspfo == 2 && m_updateNeutrals_wTrack )
+				else if ( nTrackspfo == 2 )
 				{
 					streamlog_out(DEBUG) << "PFO is neutral (with two tracks), CovMatrix is set using track information" << std::endl;
 					std::vector<float> pfoTrackCovMat( 10, 0.0 );
@@ -561,24 +585,24 @@ void AddFourMomentumCovMatAllPFOs::processEvent( EVENT::LCEvent *pLCEvent )
 						pfoTrackCovMat		= this->UpdateChargedPFOCovMat( mytrack , track_mass );
 						for ( int i = 0 ; i < 10 ; ++i )
 						{
-							outputCovMatrix[i] += pfoTrackCovMat[i];
+							if ( m_updateNeutrals_wTrack ) outputCovMatrix[i] += pfoTrackCovMat[i];
 						}
 						pfoFourMomentum		+= trackFourMomentum;
 					}
-					if ( mcpFourMomentum.E() != 0 )
+					if ( mcpFourMomentum.E() != 0 && m_updateNeutrals_wTrack )
 					{
 						PFONormalizedResidual = this->getPFONormalizedResidual( pfoFourMomentum , mcpFourMomentum , outputCovMatrix );
 						float ThetaError = PFONormalizedResidual[ 4 ];
 						float PhiError = PFONormalizedResidual[ 5 ];
-						h_ResidualEnergy_NH->Fill( PFONormalizedResidual[ 0 ] );
-						h_ResidualTheta_NH->Fill( PFONormalizedResidual[ 1 ] );
-						h_ResidualPhi_NH->Fill( PFONormalizedResidual[ 2 ] );
-						h_ErrorEnergy_NH->Fill( PFONormalizedResidual[ 3 ] );
-						h_ErrorTheta_NH->Fill( ThetaError );
-						h_ErrorPhi_NH->Fill( PhiError );
-						h_NormalizedResidualEnergy_NH->Fill( PFONormalizedResidual[ 0 ] / PFONormalizedResidual[ 3 ] );
-						h_NormalizedResidualTheta_NH->Fill( PFONormalizedResidual[ 1 ] / ThetaError );
-						h_NormalizedResidualPhi_NH->Fill( PFONormalizedResidual[ 2 ] / PhiError );
+						h_ResidualEnergy_CH->Fill( PFONormalizedResidual[ 0 ] );
+						h_ResidualTheta_CH->Fill( PFONormalizedResidual[ 1 ] );
+						h_ResidualPhi_CH->Fill( PFONormalizedResidual[ 2 ] );
+						h_ErrorEnergy_CH->Fill( PFONormalizedResidual[ 3 ] );
+						h_ErrorTheta_CH->Fill( ThetaError );
+						h_ErrorPhi_CH->Fill( PhiError );
+						h_NormalizedResidualEnergy_CH->Fill( PFONormalizedResidual[ 0 ] / PFONormalizedResidual[ 3 ] );
+						h_NormalizedResidualTheta_CH->Fill( PFONormalizedResidual[ 1 ] / ThetaError );
+						h_NormalizedResidualPhi_CH->Fill( PFONormalizedResidual[ 2 ] / PhiError );
 					}
 					h_SigmaPx2T->Fill( outputCovMatrix[0] , inputCovMatrix[0] );
 					h_SigmaPxPyT->Fill( outputCovMatrix[1] , inputCovMatrix[1] );
@@ -592,7 +616,7 @@ void AddFourMomentumCovMatAllPFOs::processEvent( EVENT::LCEvent *pLCEvent )
 					h_SigmaE2T->Fill( outputCovMatrix[9] , inputCovMatrix[9] );
 				}
 			}
-			else if ( m_updateCharged )
+			else
 			{
 				std::vector<float> pfoTrackCovMat( 10, 0.0 );
 				streamlog_out(DEBUG) << "PFO is charged (with " << nTrackspfo << " tracks), CovMatrix is set using track information" << std::endl;
@@ -617,7 +641,7 @@ void AddFourMomentumCovMatAllPFOs::processEvent( EVENT::LCEvent *pLCEvent )
 					pfoTrackCovMat		= this->UpdateChargedPFOCovMat( mytrack , track_mass );
 					for ( int i = 0 ; i < 10 ; ++i )
 					{
-						outputCovMatrix[i] += pfoTrackCovMat[i];
+						if ( m_updateCharged ) outputCovMatrix[i] += pfoTrackCovMat[i];
 					}
 					pfoFourMomentum		+= trackFourMomentum;
 				}
@@ -653,12 +677,19 @@ void AddFourMomentumCovMatAllPFOs::processEvent( EVENT::LCEvent *pLCEvent )
 			outputPFOMomentum[2]	=	pfoFourMomentum.Pz();
 			outputPFOEnergy	=	pfoFourMomentum.E();
 			outputPFO->setType(inputPFO->getType());
-			outputPFO->setMomentum(outputPFOMomentum);
-			outputPFO->setEnergy( outputPFOEnergy );
-//			outputPFO->setMomentum(inputPFO->getMomentum());
-//			outputPFO->setEnergy(inputPFO->getEnergy());
+			if ( m_updatePFO4Momentum )
+			{
+				outputPFO->setMomentum( outputPFOMomentum );
+				outputPFO->setEnergy( outputPFOEnergy );
+				outputPFO->setMass( pfoMass );
+			}
+			else
+			{
+				outputPFO->setMomentum( inputPFO->getMomentum() );
+				outputPFO->setEnergy( inputPFO->getEnergy() );
+				outputPFO->setMass( inputPFO->getMass() );
+			}
 			outputPFO->setCovMatrix(outputCovMatrix);
-			outputPFO->setMass(inputPFO->getMass());
 			outputPFO->setCharge(inputPFO->getCharge());
 			outputPFO->setReferencePoint(inputPFO->getReferencePoint());
 			for (unsigned int j=0; j<inputPFO->getParticleIDs().size(); ++j)
@@ -1015,6 +1046,119 @@ std::vector<float> AddFourMomentumCovMatAllPFOs::UpdateNeutralPFOCovMat( TVector
 }
 
 
+std::vector<float> AddFourMomentumCovMatAllPFOs::getCovMatinPolarCord( TVector3 clusterPosition , std::vector<float> clusterPositionError )
+{
+
+//	Obtain covariance matrix on (R,Theta,Phi) from the
+//	covariance matrix on cluster parameters (x,y,z).
+//	=> R^2 = x^2 + y^2 + z^2	;	tan(Theta) = sqrt( x^2 + y^2 ) / z	;	tan(Phi) = y / x
+//	define the jacobian as the 4x4 matrix:
+//
+//
+//
+//			DR/Dx			DTheta/Dx		DPhi/Dx
+//
+//	J =		DR/Dy			DTheta/Dy		DPhi/Dy
+//
+//			DR/Dz			DTheta/Dz		DPhi/Dz
+//
+//
+//
+//
+//			x/R			x.z/(R3.sqrt(1-(z2/R2)))		-y/(x2+y2)
+//
+//	J =		y/R			y.z/(R3.sqrt(1-(z2/R2)))		x/(x2+y2)
+//
+//			z/R			sqrt(1-(z2/R2))/R			0
+//
+//
+//
+//
+//
+//	CovMatrix elements in terms of cluster position error:
+//
+//			x.x			x.y			x.z
+//
+//	Cov =		y.x			y.y			y.z
+//
+//			z.x			z.y			z.z
+//
+//
+//
+//
+
+	const int rows			= 3; // n rows jacobian
+	const int columns		= 3; // n columns jacobian
+	const int kspace_time_dim	= 3;
+
+	TMatrixD covMatrixMomenta(kspace_time_dim,kspace_time_dim);
+	std::vector<float> covR;
+
+//	pfoMass			= 0.0;
+
+	float pfoX		=	clusterPosition.X();
+	float pfoY		=	clusterPosition.Y();
+	float pfoZ		=	clusterPosition.Z();
+	float pfoR		=	std::sqrt( pow( pfoX , 2 ) + pow( pfoY , 2 ) + pow( pfoZ , 2 ) );
+	float pfoR2		=	pow( pfoR , 2 );
+	float pfoR3		=	pow( pfoR , 3 );
+	float pfoX2		=	pow( pfoX , 2 );
+	float pfoY2		=	pow( pfoY , 2 );
+	float pfoZ2		=	pow( pfoZ , 2 );
+	float SigmaX2		=	clusterPositionError[ 0 ];
+	float SigmaXY		=	clusterPositionError[ 1 ];
+	float SigmaY2		=	clusterPositionError[ 2 ];
+	float SigmaXZ		=	clusterPositionError[ 3 ];
+	float SigmaYZ		=	clusterPositionError[ 4 ];
+	float SigmaZ2		=	clusterPositionError[ 5 ];
+
+	streamlog_out(DEBUG) << "Cluster information obtained" << std::endl;
+
+//	Define array with jacobian matrix elements by rows
+	double jacobian_by_rows[rows*columns] =
+			{
+				pfoX / pfoR		,		pfoX * pfoZ / ( pfoR3 * sqrt( 1 - pfoZ2 / pfoR2 ) )		,	-pfoY / ( pfoY2 + pfoX2 )		,
+				pfoY / pfoR		,		pfoY * pfoZ / ( pfoR3 * sqrt( 1 - pfoZ2 / pfoR2 ) )		,	pfoX / ( pfoY2 + pfoX2 )		,
+				pfoZ / pfoR		,		sqrt( 1 - pfoZ2 / pfoR2 ) / pfoR				,		0
+			};
+
+	streamlog_out(DEBUG) << "Jacobian array formed by rows" << std::endl;
+
+//	construct the Jacobian using previous array ("F" if filling by columns, "C", if filling by rows, $ROOTSYS/math/matrix/src/TMatrixT.cxx)
+	TMatrixD jacobian(rows,columns, jacobian_by_rows, "C");
+	streamlog_out(DEBUG) << "Jacobian array converted to Jacobian matrix" << std::endl;
+
+//	cluster covariance matrix by rows
+	double cluster_cov_matrix_by_rows[rows*rows] =
+			{
+				SigmaX2		,	SigmaXY		,	SigmaXZ		,
+				SigmaXY		,	SigmaY2		,	SigmaYZ		,
+				SigmaXZ		,	SigmaYZ		,	SigmaZ2
+			};
+	streamlog_out(DEBUG) << "cluster covariance matrix array formed by rows" << std::endl;
+
+	TMatrixD covMatrix_cluster(rows,rows, cluster_cov_matrix_by_rows, "C");
+	streamlog_out(DEBUG) << "cluster covariance matrix array converted to cluster covariance matrix" << std::endl;
+
+	covMatrixMomenta.Mult( TMatrixD( jacobian ,
+					TMatrixD::kTransposeMult ,
+					covMatrix_cluster) ,
+					jacobian
+					);
+	streamlog_out(DEBUG) << "cluster covariance matrix array in cartesian coordinate system converted to cluster covariance matrix array in spherical (polar) coordinate system" << std::endl;
+
+	covR.push_back( covMatrixMomenta(0,0) ); // R-R
+	covR.push_back( covMatrixMomenta(1,0) ); // Theta-R
+	covR.push_back( covMatrixMomenta(1,1) ); // Theta-Theta
+	covR.push_back( covMatrixMomenta(2,0) ); // Phi-R
+	covR.push_back( covMatrixMomenta(2,1) ); // Phi-Theta
+	covR.push_back( covMatrixMomenta(2,2) ); // Phi-Phi
+	streamlog_out(DEBUG) << "FourMomentumCovarianceMatrix Filled succesfully" << std::endl;
+
+	return covR;
+
+}
+
 std::vector<float> AddFourMomentumCovMatAllPFOs::UpdateChargedPFOCovMat( EVENT::Track* MyTrack , float trackMass )
 {
 
@@ -1205,7 +1349,7 @@ std::vector<float> AddFourMomentumCovMatAllPFOs::getPFONormalizedResidual( TLore
 	float mcpTheta		= mcpPvec.Theta();
 	float mcpPhi		= mcpPvec.Phi();
 	streamlog_out(DEBUG) << "MCP 4-Momentum ( px , py , pz , E , Theta , Phi ) = ( " << mcpPx << " , " << mcpPy << " , " << mcpPz << " , " << mcpE << " , " << mcpTheta << " , " << mcpPhi << " )" << std::endl;
-	
+
 	float Sigpx2		= pfoCovMat[0];
 	float SigpxSigpy	= pfoCovMat[1];
 	float Sigpy2		= pfoCovMat[2];
@@ -1224,7 +1368,7 @@ std::vector<float> AddFourMomentumCovMatAllPFOs::getPFONormalizedResidual( TLore
 	float pfoEnergyErr	= std::sqrt( Sige2 );
 	float pfoThetaErr	= std::sqrt( std::fabs( Sigpx2 * std::pow( Dth_Dpx , 2 ) + Sigpy2 * std::pow( Dth_Dpy , 2 ) + Sigpz2 * std::pow( Dth_Dpz , 2 ) + 2 * ( SigpxSigpy * Dth_Dpx * Dth_Dpy ) + 2 * ( SigpySigpz * Dth_Dpy * Dth_Dpz ) + 2 * ( SigpxSigpz * Dth_Dpx * Dth_Dpz ) ) );
 	float pfoPhiErr	= std::sqrt( std::fabs( Sigpx2 * std::pow( Dphi_Dpx , 2 ) + Sigpy2 * std::pow( Dphi_Dpy , 2 ) + 2 * ( SigpxSigpy * Dphi_Dpx * Dphi_Dpy ) ) );
-	
+
 	float ResidualEnergy	= pfoE - mcpE;
 	float ResidualTheta	= pfoTheta - mcpTheta;
 	float ResidualPhi	= 0.0;
@@ -1238,14 +1382,14 @@ std::vector<float> AddFourMomentumCovMatAllPFOs::getPFONormalizedResidual( TLore
 	}
 	streamlog_out(DEBUG) << "	Residuals	( deltaE , deltaTheta , deltaPhi ) = ( " << ResidualEnergy << "	,	" << ResidualTheta << "	, " << ResidualPhi << "	)" << std::endl;
 	streamlog_out(DEBUG) << "	Errors		( sigmaE , sigmaTheta , sigmaPhi ) = ( " << pfoEnergyErr << "	,	" << pfoThetaErr << "	,	" << pfoPhiErr << "	)" << std::endl;
-	
+
 	pfoError.push_back( ResidualEnergy );
 	pfoError.push_back( ResidualTheta );
 	pfoError.push_back( ResidualPhi );
 	pfoError.push_back( pfoEnergyErr );
 	pfoError.push_back( pfoThetaErr );
 	pfoError.push_back( pfoPhiErr );
-	
+
 	return pfoError;
 
 }

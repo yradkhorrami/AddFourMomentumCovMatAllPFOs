@@ -54,6 +54,7 @@ class AddFourMomentumCovMatAllPFOs : public Processor
 		virtual void processRunHeader();
 		virtual void processEvent( EVENT::LCEvent *pLCEvent );
 		std::vector<float> UpdateNeutralPFOCovMat( TVector3 clusterPosition , float pfoEc , float pfoMass , std::vector<float> clusterPositionError , float clusterEnergyError );
+		std::vector<float> getCovMatinPolarCord( TVector3 clusterPosition , std::vector<float> clusterPositionError );
 		std::vector<float> UpdateChargedPFOCovMat( EVENT::Track* MyTrack , float trackMass );
 		std::vector<float> getPFONormalizedResidual( TLorentzVector pfoFourMomentum , TLorentzVector mcpFourMomentum , std::vector<float> pfoCovMat );
 		double getTrackMass( EVENT::LCEvent *pLCEvent, EVENT::Track* inputTrk );
@@ -77,7 +78,9 @@ class AddFourMomentumCovMatAllPFOs : public Processor
 		bool					m_updateNeutrals_wTrack = false;
 		bool					m_updateCharged = false;
 		bool					m_AssumeNeutralPFOMassive = false;
+		bool					m_isClusterEnergyKinEnergy = false;
 		bool					m_useClusterPositionError = true;
+		bool					m_updatePFO4Momentum = false;
 		int					m_nRun;
 		int					m_nEvt;
 		int					m_nRunSum;
