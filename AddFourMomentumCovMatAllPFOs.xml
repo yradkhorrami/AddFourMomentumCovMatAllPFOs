@@ -48,6 +48,8 @@
 		<processor name="MyAddFourMomentumCovMatAllPFOs_massless_dir"/>
 		<processor name="MyAddFourMomentumCovMatAllPFOs_massive"/>
 		<processor name="MyAddFourMomentumCovMatAllPFOs_massive_dir"/>
+		<processor name="MyAddFourMomentumCovMatAllPFOs_massive_momMag"/>
+		<processor name="MyAddFourMomentumCovMatAllPFOs_massive_dir_momMag"/>
 		<!--processor name="MyLCIOOutputProcessor"/-->
 	</execute>
 
@@ -102,17 +104,21 @@
 		<!--Names of input ReconstructedParticle collection-->
 		<parameter name="inputPfoCollection" type="string" lcioInType="ReconstructedParticle">PandoraPFOs</parameter>
 		<!--Names of output ReconstructedParticle collection-->
-		<parameter name="outputPfoCollection" type="string" lcioOutType="ReconstructedParticle">PandoraPFOsCovMat_posError_masslessNH_pos</parameter>
+		<parameter name="outputPfoCollection" type="string" lcioOutType="ReconstructedParticle">PandoraPFOsCovMat_masslessNH</parameter>
 		<!--Whether use cluster position error or cluster direction error for calculating CovMatrix true: cluster position error / false: cluster direction error-->
 		<parameter name="useClusterPositionError" type="bool">true</parameter>
 		<!--Whether update the CovMat for normal neutral (without track); true: update CovMat , false: do not update-->
 		<parameter name="updateNormalNeutrals" type="bool">true</parameter>
 		<!--Whether update the CovMat for neutral with track; true: update CovMat , false: do not update-->
-		<parameter name="updateNeutrals_wTrack" type="bool">true</parameter>
+		<parameter name="updateNeutrals_wTrack" type="bool">false</parameter>
 		<!--Whether update the CovMat for charged PFOs; true: update CovMat , false: do not update-->
-		<parameter name="updateCharged" type="bool">true</parameter>
+		<parameter name="updateCharged" type="bool">false</parameter>
 		<!--Whether assume Neutral PFOs massive or messless; true: massive , false: massless-->
 		<parameter name="AssumeNeutralPFOMassive" type="bool">false</parameter>
+		<!--Whether update the 4-momentum of PFOs; true: update , false: do not update-->
+		<parameter name="updatePFO4Momentum" type="bool">false</parameter>
+		<!--true: the cluster energy is interpreted as kinetic energy of PFO, false: the cluster energy is interpreted as momentum magnitude of PFO-->
+		<parameter name="isClusterEnergyKinEnergy" type="bool">true</parameter>
 		<!--Name of the output root file-->
 		<parameter name="RootFile" type="string">${OutputRootFile}_masslessNH_pos.root</parameter>
 		<!--verbosity level of this processor ("DEBUG0-4,MESSAGE0-4,WARNING0-4,ERROR0-4,SILENT")-->
@@ -124,17 +130,21 @@
 		<!--Names of input ReconstructedParticle collection-->
 		<parameter name="inputPfoCollection" type="string" lcioInType="ReconstructedParticle">PandoraPFOs</parameter>
 		<!--Names of output ReconstructedParticle collection-->
-		<parameter name="outputPfoCollection" type="string" lcioOutType="ReconstructedParticle">PandoraPFOsCovMat_posError_masslessNH_dir</parameter>
+		<parameter name="outputPfoCollection" type="string" lcioOutType="ReconstructedParticle">PandoraPFOsCovMat_masslessNH_dir</parameter>
 		<!--Whether use cluster position error or cluster direction error for calculating CovMatrix true: cluster position error / false: cluster direction error-->
 		<parameter name="useClusterPositionError" type="bool">false</parameter>
 		<!--Whether update the CovMat for normal neutral (without track); true: update CovMat , false: do not update-->
 		<parameter name="updateNormalNeutrals" type="bool">true</parameter>
 		<!--Whether update the CovMat for neutral with track; true: update CovMat , false: do not update-->
-		<parameter name="updateNeutrals_wTrack" type="bool">true</parameter>
+		<parameter name="updateNeutrals_wTrack" type="bool">false</parameter>
 		<!--Whether update the CovMat for charged PFOs; true: update CovMat , false: do not update-->
-		<parameter name="updateCharged" type="bool">true</parameter>
+		<parameter name="updateCharged" type="bool">false</parameter>
 		<!--Whether assume Neutral PFOs massive or messless; true: massive , false: massless-->
 		<parameter name="AssumeNeutralPFOMassive" type="bool">false</parameter>
+		<!--Whether update the 4-momentum of PFOs; true: update , false: do not update-->
+		<parameter name="updatePFO4Momentum" type="bool">false</parameter>
+		<!--true: the cluster energy is interpreted as kinetic energy of PFO, false: the cluster energy is interpreted as momentum magnitude of PFO-->
+		<parameter name="isClusterEnergyKinEnergy" type="bool">true</parameter>
 		<!--Name of the output root file-->
 		<parameter name="RootFile" type="string">${OutputRootFile}_masslessNH_dir.root</parameter>
 		<!--verbosity level of this processor ("DEBUG0-4,MESSAGE0-4,WARNING0-4,ERROR0-4,SILENT")-->
@@ -146,17 +156,21 @@
 		<!--Names of input ReconstructedParticle collection-->
 		<parameter name="inputPfoCollection" type="string" lcioInType="ReconstructedParticle">PandoraPFOs</parameter>
 		<!--Names of output ReconstructedParticle collection-->
-		<parameter name="outputPfoCollection" type="string" lcioOutType="ReconstructedParticle">PandoraPFOsCovMat_posError_massiveNH_pos</parameter>
+		<parameter name="outputPfoCollection" type="string" lcioOutType="ReconstructedParticle">PandoraPFOsCovMat_massiveNH</parameter>
 		<!--Whether use cluster position error or cluster direction error for calculating CovMatrix true: cluster position error / false: cluster direction error-->
 		<parameter name="useClusterPositionError" type="bool">true</parameter>
 		<!--Whether update the CovMat for normal neutral (without track); true: update CovMat , false: do not update-->
 		<parameter name="updateNormalNeutrals" type="bool">true</parameter>
 		<!--Whether update the CovMat for neutral with track; true: update CovMat , false: do not update-->
-		<parameter name="updateNeutrals_wTrack" type="bool">true</parameter>
+		<parameter name="updateNeutrals_wTrack" type="bool">false</parameter>
 		<!--Whether update the CovMat for charged PFOs; true: update CovMat , false: do not update-->
-		<parameter name="updateCharged" type="bool">true</parameter>
+		<parameter name="updateCharged" type="bool">false</parameter>
 		<!--Whether assume Neutral PFOs massive or messless; true: massive , false: massless-->
 		<parameter name="AssumeNeutralPFOMassive" type="bool">true</parameter>
+		<!--Whether update the 4-momentum of PFOs; true: update , false: do not update-->
+		<parameter name="updatePFO4Momentum" type="bool">false</parameter>
+		<!--true: the cluster energy is interpreted as kinetic energy of PFO, false: the cluster energy is interpreted as momentum magnitude of PFO-->
+		<parameter name="isClusterEnergyKinEnergy" type="bool">true</parameter>
 		<!--Name of the output root file-->
 		<parameter name="RootFile" type="string">${OutputRootFile}_massiveNH_pos.root</parameter>
 		<!--verbosity level of this processor ("DEBUG0-4,MESSAGE0-4,WARNING0-4,ERROR0-4,SILENT")-->
@@ -168,19 +182,75 @@
 		<!--Names of input ReconstructedParticle collection-->
 		<parameter name="inputPfoCollection" type="string" lcioInType="ReconstructedParticle">PandoraPFOs</parameter>
 		<!--Names of output ReconstructedParticle collection-->
-		<parameter name="outputPfoCollection" type="string" lcioOutType="ReconstructedParticle">PandoraPFOsCovMat_posError_massiveNH_dir</parameter>
+		<parameter name="outputPfoCollection" type="string" lcioOutType="ReconstructedParticle">PandoraPFOsCovMat_massiveNH_dir</parameter>
 		<!--Whether use cluster position error or cluster direction error for calculating CovMatrix true: cluster position error / false: cluster direction error-->
 		<parameter name="useClusterPositionError" type="bool">false</parameter>
 		<!--Whether update the CovMat for normal neutral (without track); true: update CovMat , false: do not update-->
 		<parameter name="updateNormalNeutrals" type="bool">true</parameter>
 		<!--Whether update the CovMat for neutral with track; true: update CovMat , false: do not update-->
-		<parameter name="updateNeutrals_wTrack" type="bool">true</parameter>
+		<parameter name="updateNeutrals_wTrack" type="bool">false</parameter>
 		<!--Whether update the CovMat for charged PFOs; true: update CovMat , false: do not update-->
-		<parameter name="updateCharged" type="bool">true</parameter>
+		<parameter name="updateCharged" type="bool">false</parameter>
 		<!--Whether assume Neutral PFOs massive or messless; true: massive , false: massless-->
 		<parameter name="AssumeNeutralPFOMassive" type="bool">true</parameter>
+		<!--Whether update the 4-momentum of PFOs; true: update , false: do not update-->
+		<parameter name="updatePFO4Momentum" type="bool">false</parameter>
+		<!--true: the cluster energy is interpreted as kinetic energy of PFO, false: the cluster energy is interpreted as momentum magnitude of PFO-->
+		<parameter name="isClusterEnergyKinEnergy" type="bool">true</parameter>
 		<!--Name of the output root file-->
 		<parameter name="RootFile" type="string">${OutputRootFile}_massiveNH_dir.root</parameter>
+		<!--verbosity level of this processor ("DEBUG0-4,MESSAGE0-4,WARNING0-4,ERROR0-4,SILENT")-->
+		<parameter name="Verbosity" type="string">MESSAGE</parameter>
+	</processor>
+
+	<processor name="MyAddFourMomentumCovMatAllPFOs_massive_momMag" type="AddFourMomentumCovMatAllPFOs">
+		<!--AddFourMomentumCovMatAllPFOs sets CovMatrix of all PFOs-->
+		<!--Names of input ReconstructedParticle collection-->
+		<parameter name="inputPfoCollection" type="string" lcioInType="ReconstructedParticle">PandoraPFOs</parameter>
+		<!--Names of output ReconstructedParticle collection-->
+		<parameter name="outputPfoCollection" type="string" lcioOutType="ReconstructedParticle">PandoraPFOsCovMat_massiveNH_momMag</parameter>
+		<!--Whether use cluster position error or cluster direction error for calculating CovMatrix true: cluster position error / false: cluster direction error-->
+		<parameter name="useClusterPositionError" type="bool">true</parameter>
+		<!--Whether update the CovMat for normal neutral (without track); true: update CovMat , false: do not update-->
+		<parameter name="updateNormalNeutrals" type="bool">true</parameter>
+		<!--Whether update the CovMat for neutral with track; true: update CovMat , false: do not update-->
+		<parameter name="updateNeutrals_wTrack" type="bool">false</parameter>
+		<!--Whether update the CovMat for charged PFOs; true: update CovMat , false: do not update-->
+		<parameter name="updateCharged" type="bool">false</parameter>
+		<!--Whether assume Neutral PFOs massive or messless; true: massive , false: massless-->
+		<parameter name="AssumeNeutralPFOMassive" type="bool">true</parameter>
+		<!--Whether update the 4-momentum of PFOs; true: update , false: do not update-->
+		<parameter name="updatePFO4Momentum" type="bool">false</parameter>
+		<!--true: the cluster energy is interpreted as kinetic energy of PFO, false: the cluster energy is interpreted as momentum magnitude of PFO-->
+		<parameter name="isClusterEnergyKinEnergy" type="bool">false</parameter>
+		<!--Name of the output root file-->
+		<parameter name="RootFile" type="string">${OutputRootFile}_massiveNH_pos_momMag.root</parameter>
+		<!--verbosity level of this processor ("DEBUG0-4,MESSAGE0-4,WARNING0-4,ERROR0-4,SILENT")-->
+		<parameter name="Verbosity" type="string">MESSAGE</parameter>
+	</processor>
+
+	<processor name="MyAddFourMomentumCovMatAllPFOs_massive_dir_momMag" type="AddFourMomentumCovMatAllPFOs">
+		<!--AddFourMomentumCovMatAllPFOs sets CovMatrix of all PFOs-->
+		<!--Names of input ReconstructedParticle collection-->
+		<parameter name="inputPfoCollection" type="string" lcioInType="ReconstructedParticle">PandoraPFOs</parameter>
+		<!--Names of output ReconstructedParticle collection-->
+		<parameter name="outputPfoCollection" type="string" lcioOutType="ReconstructedParticle">PandoraPFOsCovMat_massiveNH_momMag_dir</parameter>
+		<!--Whether use cluster position error or cluster direction error for calculating CovMatrix true: cluster position error / false: cluster direction error-->
+		<parameter name="useClusterPositionError" type="bool">false</parameter>
+		<!--Whether update the CovMat for normal neutral (without track); true: update CovMat , false: do not update-->
+		<parameter name="updateNormalNeutrals" type="bool">true</parameter>
+		<!--Whether update the CovMat for neutral with track; true: update CovMat , false: do not update-->
+		<parameter name="updateNeutrals_wTrack" type="bool">false</parameter>
+		<!--Whether update the CovMat for charged PFOs; true: update CovMat , false: do not update-->
+		<parameter name="updateCharged" type="bool">false</parameter>
+		<!--Whether assume Neutral PFOs massive or messless; true: massive , false: massless-->
+		<parameter name="AssumeNeutralPFOMassive" type="bool">true</parameter>
+		<!--Whether update the 4-momentum of PFOs; true: update , false: do not update-->
+		<parameter name="updatePFO4Momentum" type="bool">false</parameter>
+		<!--true: the cluster energy is interpreted as kinetic energy of PFO, false: the cluster energy is interpreted as momentum magnitude of PFO-->
+		<parameter name="isClusterEnergyKinEnergy" type="bool">false</parameter>
+		<!--Name of the output root file-->
+		<parameter name="RootFile" type="string">${OutputRootFile}_massiveNH_dir_momMag.root</parameter>
 		<!--verbosity level of this processor ("DEBUG0-4,MESSAGE0-4,WARNING0-4,ERROR0-4,SILENT")-->
 		<parameter name="Verbosity" type="string">MESSAGE</parameter>
 	</processor>
