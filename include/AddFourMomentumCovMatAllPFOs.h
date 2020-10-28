@@ -111,6 +111,7 @@ class AddFourMomentumCovMatAllPFOs : public Processor
 	        TDirectory				*m_TotalPFOs;
 	        TDirectory				*m_TotalNHs;
 	        TDirectory				*m_TotalRest;
+	        TDirectory				*m_CovMatinPolar;
 		TH2I					*h_nTracks_PFOCharge{};
 		TH2I					*h_nClusters_nTracks{};
 		TH2F					*h_clusterE_pfoE{};
@@ -206,6 +207,16 @@ class AddFourMomentumCovMatAllPFOs : public Processor
 		TH1F					*h_NormalizedResidualTotalEnergy{};
 		TH1F					*h_NormalizedResidualTotalTheta{};
 		TH1F					*h_NormalizedResidualTotalPhi{};
+		TH1F					*h_CovMatPolar_ThetaTheta{};
+		TH1F					*h_CovMatPolar_ThetaPhi{};
+		TH1F					*h_CovMatPolar_PhiPhi{};
+		TH1F					*h_CovMatPolar_ThetaMomentum{};
+		TH1F					*h_CovMatPolar_PhiMomentum{};
+		TH1F					*h_CovMatPolar_MomentumMomentum{};
+		TH1F					*h_CovMatPolar_ThetaEnergy{};
+		TH1F					*h_CovMatPolar_PhiEnergy{};
+		TH1F					*h_CovMatPolar_MomentumEnergy{};
+		TH1F					*h_CovMatPolar_EnergyEnergy{};
 		TH2F					*h_NH_EclusterPlusMass_Emcp{};
 		TH2F					*h_NHEnergy{};
 
