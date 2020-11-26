@@ -53,7 +53,8 @@ class AddFourMomentumCovMatAllPFOs : public Processor
 		virtual void Clear();
 		virtual void processRunHeader();
 		virtual void processEvent( EVENT::LCEvent *pLCEvent );
-		std::vector<float> UpdateNeutralPFOCovMat( TVector3 clusterPosition , float pfoEc , float pfoMass , std::vector<float> clusterPositionError , float clusterEnergyError );
+		std::vector<float> UpdateNeutralPFOCovMatCartesian( TVector3 clusterPosition , float pfoEc , float pfoMass , std::vector<float> clusterPositionError , float clusterEnergyError );
+		std::vector<float> UpdateNeutralPFOCovMatPolar( float pfoTheta , float pfoPhi , float pfoEnergy , float pfoMass , std::vector<float> PFOCoordinateError , float clusterEnergyError );
 		std::vector<float> getClusterDirectionError( TVector3 clusterPosition , std::vector<float> clusterPositionError );
 		std::vector<float> UpdateChargedPFOCovMat( EVENT::Track* MyTrack , float trackMass );
 		std::vector<float> getPFOResidual( TLorentzVector pfoFourMomentum , TLorentzVector mcpFourMomentum );
@@ -84,7 +85,8 @@ class AddFourMomentumCovMatAllPFOs : public Processor
 		bool					m_updatePFO4Momentum = false;
 		bool					m_useTrueJacobian = false;
 		bool					m_scaleAngularUncertainty = false;
-		float					m_AngularUncertaintyScaleFactor = 1.0;
+		float					m_AngularUncertaintyScaleFactor_NH = 1.0;
+		float					m_AngularUncertaintyScaleFactor_Ph = 1.0;
 		int					m_nRun;
 		int					m_nEvt;
 		int					m_nRunSum;

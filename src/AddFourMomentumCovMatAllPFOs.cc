@@ -29,7 +29,7 @@ AddFourMomentumCovMatAllPFOs aAddFourMomentumCovMatAllPFOs;
 AddFourMomentumCovMatAllPFOs::AddFourMomentumCovMatAllPFOs() :
 
 Processor("AddFourMomentumCovMatAllPFOs"),
-//m_AngularUncertaintyScaleFactor(1.0),
+//m_AngularUncertaintyScaleFactor_NH(1.0),
 m_nRun(0),
 m_nEvt(0),
 m_nRunSum(0),
@@ -261,9 +261,15 @@ h_NHEnergy(NULL)
 					bool(false)
 				);
 
-	registerProcessorParameter(	"AngularUncertaintyScaleFactor",
+	registerProcessorParameter(	"AngularUncertaintyScaleFactor_NH",
 					"Scale factor of CovMat for Neutral Hadrons",
-					m_AngularUncertaintyScaleFactor,
+					m_AngularUncertaintyScaleFactor_NH,
+					float(1.0)
+				);
+
+	registerProcessorParameter(	"AngularUncertaintyScaleFactor_Ph",
+					"Scale factor of CovMat for Photons",
+					m_AngularUncertaintyScaleFactor_Ph,
 					float(1.0)
 				);
 
@@ -400,41 +406,41 @@ void AddFourMomentumCovMatAllPFOs::init()
 	m_NeutralPFO = m_ErrorParameterization->mkdir("NeutralPFO");
 	m_ChargedPFO = m_ErrorParameterization->mkdir("ChargedPFO");
 	m_CovMatinPolar = m_ErrorParameterization->mkdir("CovMatinPolar");
-	h_nTracks_PFOCharge = new TH2I("All PFOs", "; charge of PFO; n_{Tracks}", 5, -2.5, 2.5, 5, -0.5, 4.5);
-	h_nClusters_nTracks = new TH2I("Neutral PFOs", "; n_{Clusters}; n_{Tracks}", 5, -0.5, 4.5, 5, -0.5, 4.5);
-	h_clusterE_pfoE = new TH2F("Neutral PFOs (n_{Tracks} = 0)", "; E_{Cluster} [GeV]; E_{PFO} [GeV]", 10000, 0.0, 100., 10000, 0.0, 100.);
-	h_SigmaPx2nT = new TH2F("Neutral PFOs (n_{Tracks} = 0)", "; #sigma_{p_{x}}^{2} (new PFO) [GeV^{2}]; #sigma_{p_{x}}^{2} (old PFO) [GeV^{2}]", 400, 0.0, 0.1, 400, 0.0, 0.1);
-	h_SigmaPxPynT = new TH2F("Neutral PFOs (n_{Tracks} = 0)", "; #sigma_{p_{x}p_{y}} (new PFO) [GeV^{2}]; #sigma_{p_{x}p_{y}} (old PFO) [GeV^{2}]", 400, -0.1, 0.1, 400, -0.1, 0.1);
-	h_SigmaPy2nT = new TH2F("Neutral PFOs (n_{Tracks} = 0)", "; #sigma_{p_{y}}^{2} (new PFO) [GeV^{2}]; #sigma_{p_{y}}^{2} (old PFO) [GeV^{2}]", 400, 0.0, 0.1, 400, 0.0, 0.1);
-	h_SigmaPxPznT = new TH2F("Neutral PFOs (n_{Tracks} = 0)", "; #sigma_{p_{x}p_{z}} (new PFO) [GeV^{2}]; #sigma_{p_{x}p_{z}} (old PFO) [GeV^{2}]", 400, -0.1, 0.1, 400, -0.1, 0.1);
-	h_SigmaPyPznT = new TH2F("Neutral PFOs (n_{Tracks} = 0)", "; #sigma_{p_{y}p_{z}} (new PFO) [GeV^{2}]; #sigma_{p_{y}p_{z}} (old PFO) [GeV^{2}]", 400, -0.1, 0.1, 400, -0.1, 0.1);
-	h_SigmaPz2nT = new TH2F("Neutral PFOs (n_{Tracks} = 0)", "; #sigma_{p_{z}}^{2} (new PFO) [GeV^{2}]; #sigma_{p_{z}}^{2} (old PFO) [GeV^{2}]", 400, 0.0, 0.1, 400, 0.0, 0.1);
-	h_SigmaPxEnT = new TH2F("Neutral PFOs (n_{Tracks} = 0)", "; #sigma_{p_{x}E} (new PFO) [GeV^{2}]; #sigma_{p_{x}E} (old PFO) [GeV^{2}]", 400, -0.1, 0.1, 400, -0.1, 0.1);
-	h_SigmaPyEnT = new TH2F("Neutral PFOs (n_{Tracks} = 0)", "; #sigma_{p_{y}E} (new PFO) [GeV^{2}]; #sigma_{p_{y}E} (old PFO) [GeV^{2}]", 400, -0.1, 0.1, 400, -0.1, 0.1);
-	h_SigmaPzEnT = new TH2F("Neutral PFOs (n_{Tracks} = 0)", "; #sigma_{p_{z}E} (new PFO) [GeV^{2}]; #sigma_{p_{z}E} (old PFO) [GeV^{2}]", 400, -0.1, 0.1, 400, -0.1, 0.1);
-	h_SigmaE2nT = new TH2F("Neutral PFOs (n_{Tracks} = 0)", "; #sigma_{E}^{2} (new PFO) [GeV^{2}]; #sigma_{E}^{2} (old PFO) [GeV^{2}]", 400, 0.0, 0.6, 400, 0.0, 0.6);
-	h_SigmaPx2T = new TH2F("Neutral PFOs (n_{Tracks} = 2)", "; #sigma_{p_{x}}^{2} (new PFO) [GeV^{2}]; #sigma_{p_{x}}^{2} (old PFO) [GeV^{2}]", 400, 0.0, 0.1, 400, 0.0, 0.1);
-	h_SigmaPxPyT = new TH2F("Neutral PFOs (n_{Tracks} = 2)", "; #sigma_{p_{x}p_{y}} (new PFO) [GeV^{2}]; #sigma_{p_{x}p_{y}} (old PFO) [GeV^{2}]", 400, -0.1, 0.1, 400, -0.1, 0.1);
-	h_SigmaPy2T = new TH2F("Neutral PFOs (n_{Tracks} = 2)", "; #sigma_{p_{y}}^{2} (new PFO) [GeV^{2}]; #sigma_{p_{y}}^{2} (old PFO) [GeV^{2}]", 400, 0.0, 0.1, 400, 0.0, 0.1);
-	h_SigmaPxPzT = new TH2F("Neutral PFOs (n_{Tracks} = 2)", "; #sigma_{p_{x}p_{z}} (new PFO) [GeV^{2}]; #sigma_{p_{x}p_{z}} (old PFO) [GeV^{2}]", 400, -0.1, 0.1, 400, -0.1, 0.1);
-	h_SigmaPyPzT = new TH2F("Neutral PFOs (n_{Tracks} = 2)", "; #sigma_{p_{y}p_{z}} (new PFO) [GeV^{2}]; #sigma_{p_{y}p_{z}} (old PFO) [GeV^{2}]", 400, -0.1, 0.1, 400, -0.1, 0.1);
-	h_SigmaPz2T = new TH2F("Neutral PFOs (n_{Tracks} = 2)", "; #sigma_{p_{z}}^{2} (new PFO) [GeV^{2}]; #sigma_{p_{z}}^{2} (old PFO) [GeV^{2}]", 400, 0.0, 0.1, 400, 0.0, 0.1);
-	h_SigmaPxET = new TH2F("Neutral PFOs (n_{Tracks} = 2)", "; #sigma_{p_{x}E} (new PFO) [GeV^{2}]; #sigma_{p_{x}E} (old PFO) [GeV^{2}]", 400, -0.1, 0.1, 400, -0.1, 0.1);
-	h_SigmaPyET = new TH2F("Neutral PFOs (n_{Tracks} = 2)", "; #sigma_{p_{y}E} (new PFO) [GeV^{2}]; #sigma_{p_{y}E} (old PFO) [GeV^{2}]", 400, -0.1, 0.1, 400, -0.1, 0.1);
-	h_SigmaPzET = new TH2F("Neutral PFOs (n_{Tracks} = 2)", "; #sigma_{p_{z}E} (new PFO) [GeV^{2}]; #sigma_{p_{z}E} (old PFO) [GeV^{2}]", 400, -0.1, 0.1, 400, -0.1, 0.1);
-	h_SigmaE2T = new TH2F("Neutral PFOs (n_{Tracks} = 2)", "; #sigma_{E}^{2} (new PFO) [GeV^{2}]; #sigma_{E}^{2} (old PFO) [GeV^{2}]", 400, 0.0, 0.6, 400, 0.0, 0.6);
-	h_SigmaPx2 = new TH2F("Charged PFOs", "; #sigma_{p_{x}}^{2} (new PFO) [GeV^{2}]; #sigma_{p_{x}}^{2} (old PFO) [GeV^{2}]", 400, 0.0, 0.1, 400, 0.0, 0.1);
-	h_SigmaPxPy = new TH2F("Charged PFOs", "; #sigma_{p_{x}p_{y}} (new PFO) [GeV^{2}]; #sigma_{p_{x}p_{y}} (old PFO) [GeV^{2}]", 400, -0.1, 0.1, 400, -0.1, 0.1);
-	h_SigmaPy2 = new TH2F("Charged PFOs", "; #sigma_{p_{y}}^{2} (new PFO) [GeV^{2}]; #sigma_{p_{y}}^{2} (old PFO) [GeV^{2}]", 400, 0.0, 0.1, 400, 0.0, 0.1);
-	h_SigmaPxPz = new TH2F("Charged PFOs", "; #sigma_{p_{x}p_{z}} (new PFO) [GeV^{2}]; #sigma_{p_{x}p_{z}} (old PFO) [GeV^{2}]", 400, -0.1, 0.1, 400, -0.1, 0.1);
-	h_SigmaPyPz = new TH2F("Charged PFOs", "; #sigma_{p_{y}p_{z}} (new PFO) [GeV^{2}]; #sigma_{p_{y}p_{z}} (old PFO) [GeV^{2}]", 400, -0.1, 0.1, 400, -0.1, 0.1);
-	h_SigmaPz2 = new TH2F("Charged PFOs", "; #sigma_{p_{z}}^{2} (new PFO) [GeV^{2}]; #sigma_{p_{z}}^{2} (old PFO) [GeV^{2}]", 400, 0.0, 0.1, 400, 0.0, 0.1);
-	h_SigmaPxE = new TH2F("Charged PFOs", "; #sigma_{p_{x}E} (new PFO) [GeV^{2}]; #sigma_{p_{x}E} (old PFO) [GeV^{2}]", 400, -0.1, 0.1, 400, -0.1, 0.1);
-	h_SigmaPyE = new TH2F("Charged PFOs", "; #sigma_{p_{y}E} (new PFO) [GeV^{2}]; #sigma_{p_{y}E} (old PFO) [GeV^{2}]", 400, -0.1, 0.1, 400, -0.1, 0.1);
-	h_SigmaPzE = new TH2F("Charged PFOs", "; #sigma_{p_{z}E} (new PFO) [GeV^{2}]; #sigma_{p_{z}E} (old PFO) [GeV^{2}]", 400, -0.1, 0.1, 400, -0.1, 0.1);
-	h_SigmaE2 = new TH2F("Charged PFOs", "; #sigma_{E}^{2} (new PFO) [GeV^{2}]; #sigma_{E}^{2} (old PFO) [GeV^{2}]", 400, 0.0, 0.6, 400, 0.0, 0.6);
-	h_NeutPFO_PDG = new TH1I("Neutral PFOs PDG", "; PDG Code", 200001, -100000.5, 100000.5);
-	h_NeutPFO_TYPE = new TH1I("Neutral PFOs TYPE", "; True Part. Type", 15, 0, 15);
+	h_nTracks_PFOCharge = new TH2I("h_nTracks_PFOCharge", "; charge of PFO; n_{Tracks}", 5, -2.5, 2.5, 5, -0.5, 4.5);
+	h_nClusters_nTracks = new TH2I("h_nClusters_nTracks", "; n_{Clusters}; n_{Tracks}", 5, -0.5, 4.5, 5, -0.5, 4.5);
+	h_clusterE_pfoE = new TH2F("h_clusterE_pfoE", "; E_{Cluster} [GeV]; E_{PFO} [GeV]", 10000, 0.0, 100., 10000, 0.0, 100.);
+	h_SigmaPx2nT = new TH2F("h_SigmaPx2nT", "; #sigma_{p_{x}}^{2} (new PFO) [GeV^{2}]; #sigma_{p_{x}}^{2} (old PFO) [GeV^{2}]", 400, 0.0, 0.1, 400, 0.0, 0.1);
+	h_SigmaPxPynT = new TH2F("h_SigmaPxPynT", "; #sigma_{p_{x}p_{y}} (new PFO) [GeV^{2}]; #sigma_{p_{x}p_{y}} (old PFO) [GeV^{2}]", 400, -0.1, 0.1, 400, -0.1, 0.1);
+	h_SigmaPy2nT = new TH2F("h_SigmaPy2nT", "; #sigma_{p_{y}}^{2} (new PFO) [GeV^{2}]; #sigma_{p_{y}}^{2} (old PFO) [GeV^{2}]", 400, 0.0, 0.1, 400, 0.0, 0.1);
+	h_SigmaPxPznT = new TH2F("h_SigmaPxPznT", "; #sigma_{p_{x}p_{z}} (new PFO) [GeV^{2}]; #sigma_{p_{x}p_{z}} (old PFO) [GeV^{2}]", 400, -0.1, 0.1, 400, -0.1, 0.1);
+	h_SigmaPyPznT = new TH2F("h_SigmaPyPznT", "; #sigma_{p_{y}p_{z}} (new PFO) [GeV^{2}]; #sigma_{p_{y}p_{z}} (old PFO) [GeV^{2}]", 400, -0.1, 0.1, 400, -0.1, 0.1);
+	h_SigmaPz2nT = new TH2F("h_SigmaPz2nT", "; #sigma_{p_{z}}^{2} (new PFO) [GeV^{2}]; #sigma_{p_{z}}^{2} (old PFO) [GeV^{2}]", 400, 0.0, 0.1, 400, 0.0, 0.1);
+	h_SigmaPxEnT = new TH2F("h_SigmaPxEnT", "; #sigma_{p_{x}E} (new PFO) [GeV^{2}]; #sigma_{p_{x}E} (old PFO) [GeV^{2}]", 400, -0.1, 0.1, 400, -0.1, 0.1);
+	h_SigmaPyEnT = new TH2F("h_SigmaPyEnT", "; #sigma_{p_{y}E} (new PFO) [GeV^{2}]; #sigma_{p_{y}E} (old PFO) [GeV^{2}]", 400, -0.1, 0.1, 400, -0.1, 0.1);
+	h_SigmaPzEnT = new TH2F("h_SigmaPzEnT", "; #sigma_{p_{z}E} (new PFO) [GeV^{2}]; #sigma_{p_{z}E} (old PFO) [GeV^{2}]", 400, -0.1, 0.1, 400, -0.1, 0.1);
+	h_SigmaE2nT = new TH2F("h_SigmaE2nT", "; #sigma_{E}^{2} (new PFO) [GeV^{2}]; #sigma_{E}^{2} (old PFO) [GeV^{2}]", 400, 0.0, 0.6, 400, 0.0, 0.6);
+	h_SigmaPx2T = new TH2F("h_SigmaPx2T", "; #sigma_{p_{x}}^{2} (new PFO) [GeV^{2}]; #sigma_{p_{x}}^{2} (old PFO) [GeV^{2}]", 400, 0.0, 0.1, 400, 0.0, 0.1);
+	h_SigmaPxPyT = new TH2F("h_SigmaPxPyT", "; #sigma_{p_{x}p_{y}} (new PFO) [GeV^{2}]; #sigma_{p_{x}p_{y}} (old PFO) [GeV^{2}]", 400, -0.1, 0.1, 400, -0.1, 0.1);
+	h_SigmaPy2T = new TH2F("h_SigmaPy2T", "; #sigma_{p_{y}}^{2} (new PFO) [GeV^{2}]; #sigma_{p_{y}}^{2} (old PFO) [GeV^{2}]", 400, 0.0, 0.1, 400, 0.0, 0.1);
+	h_SigmaPxPzT = new TH2F("h_SigmaPxPzT", "; #sigma_{p_{x}p_{z}} (new PFO) [GeV^{2}]; #sigma_{p_{x}p_{z}} (old PFO) [GeV^{2}]", 400, -0.1, 0.1, 400, -0.1, 0.1);
+	h_SigmaPyPzT = new TH2F("h_SigmaPyPzT", "; #sigma_{p_{y}p_{z}} (new PFO) [GeV^{2}]; #sigma_{p_{y}p_{z}} (old PFO) [GeV^{2}]", 400, -0.1, 0.1, 400, -0.1, 0.1);
+	h_SigmaPz2T = new TH2F("h_SigmaPz2T", "; #sigma_{p_{z}}^{2} (new PFO) [GeV^{2}]; #sigma_{p_{z}}^{2} (old PFO) [GeV^{2}]", 400, 0.0, 0.1, 400, 0.0, 0.1);
+	h_SigmaPxET = new TH2F("h_SigmaPxET", "; #sigma_{p_{x}E} (new PFO) [GeV^{2}]; #sigma_{p_{x}E} (old PFO) [GeV^{2}]", 400, -0.1, 0.1, 400, -0.1, 0.1);
+	h_SigmaPyET = new TH2F("h_SigmaPyET", "; #sigma_{p_{y}E} (new PFO) [GeV^{2}]; #sigma_{p_{y}E} (old PFO) [GeV^{2}]", 400, -0.1, 0.1, 400, -0.1, 0.1);
+	h_SigmaPzET = new TH2F("h_SigmaPzET", "; #sigma_{p_{z}E} (new PFO) [GeV^{2}]; #sigma_{p_{z}E} (old PFO) [GeV^{2}]", 400, -0.1, 0.1, 400, -0.1, 0.1);
+	h_SigmaE2T = new TH2F("h_SigmaE2T", "; #sigma_{E}^{2} (new PFO) [GeV^{2}]; #sigma_{E}^{2} (old PFO) [GeV^{2}]", 400, 0.0, 0.6, 400, 0.0, 0.6);
+	h_SigmaPx2 = new TH2F("h_SigmaPx2", "; #sigma_{p_{x}}^{2} (new PFO) [GeV^{2}]; #sigma_{p_{x}}^{2} (old PFO) [GeV^{2}]", 400, 0.0, 0.1, 400, 0.0, 0.1);
+	h_SigmaPxPy = new TH2F("h_SigmaPxPy", "; #sigma_{p_{x}p_{y}} (new PFO) [GeV^{2}]; #sigma_{p_{x}p_{y}} (old PFO) [GeV^{2}]", 400, -0.1, 0.1, 400, -0.1, 0.1);
+	h_SigmaPy2 = new TH2F("h_SigmaPy2", "; #sigma_{p_{y}}^{2} (new PFO) [GeV^{2}]; #sigma_{p_{y}}^{2} (old PFO) [GeV^{2}]", 400, 0.0, 0.1, 400, 0.0, 0.1);
+	h_SigmaPxPz = new TH2F("h_SigmaPxPz", "; #sigma_{p_{x}p_{z}} (new PFO) [GeV^{2}]; #sigma_{p_{x}p_{z}} (old PFO) [GeV^{2}]", 400, -0.1, 0.1, 400, -0.1, 0.1);
+	h_SigmaPyPz = new TH2F("h_SigmaPyPz", "; #sigma_{p_{y}p_{z}} (new PFO) [GeV^{2}]; #sigma_{p_{y}p_{z}} (old PFO) [GeV^{2}]", 400, -0.1, 0.1, 400, -0.1, 0.1);
+	h_SigmaPz2 = new TH2F("h_SigmaPz2", "; #sigma_{p_{z}}^{2} (new PFO) [GeV^{2}]; #sigma_{p_{z}}^{2} (old PFO) [GeV^{2}]", 400, 0.0, 0.1, 400, 0.0, 0.1);
+	h_SigmaPxE = new TH2F("h_SigmaPxE", "; #sigma_{p_{x}E} (new PFO) [GeV^{2}]; #sigma_{p_{x}E} (old PFO) [GeV^{2}]", 400, -0.1, 0.1, 400, -0.1, 0.1);
+	h_SigmaPyE = new TH2F("h_SigmaPyE", "; #sigma_{p_{y}E} (new PFO) [GeV^{2}]; #sigma_{p_{y}E} (old PFO) [GeV^{2}]", 400, -0.1, 0.1, 400, -0.1, 0.1);
+	h_SigmaPzE = new TH2F("h_SigmaPzE", "; #sigma_{p_{z}E} (new PFO) [GeV^{2}]; #sigma_{p_{z}E} (old PFO) [GeV^{2}]", 400, -0.1, 0.1, 400, -0.1, 0.1);
+	h_SigmaE2 = new TH2F("h_SigmaE2", "; #sigma_{E}^{2} (new PFO) [GeV^{2}]; #sigma_{E}^{2} (old PFO) [GeV^{2}]", 400, 0.0, 0.6, 400, 0.0, 0.6);
+	h_NeutPFO_PDG = new TH1I("h_NeutPFO_PDG", "; PDG Code", 200001, -100000.5, 100000.5);
+	h_NeutPFO_TYPE = new TH1I("h_NeutPFO_TYPE", "; True Part. Type", 15, 0, 15);
 	h_NeutPFO_TYPE->GetXaxis()->SetBinLabel(1,"e^{#pm}");
 	h_NeutPFO_TYPE->GetXaxis()->SetBinLabel(2,"#mu^{#pm}");
 	h_NeutPFO_TYPE->GetXaxis()->SetBinLabel(3,"#gamma");
@@ -450,7 +456,7 @@ void AddFourMomentumCovMatAllPFOs::init()
 	h_NeutPFO_TYPE->GetXaxis()->SetBinLabel(13,"#Xi^{-}");
 	h_NeutPFO_TYPE->GetXaxis()->SetBinLabel(14,"#Xi");
 	h_NeutPFO_TYPE->GetXaxis()->SetBinLabel(15,"Others");
-	h_NeutPFO_IDasPhoton = new TH1I("Photons", "; True Part. Type", 15, 0, 15);
+	h_NeutPFO_IDasPhoton = new TH1I("h_NeutPFO_IDasPhoton", "; True Part. Type", 15, 0, 15);
 	h_NeutPFO_IDasPhoton->GetXaxis()->SetBinLabel(1,"e^{#pm}");
 	h_NeutPFO_IDasPhoton->GetXaxis()->SetBinLabel(2,"#mu^{#pm}");
 	h_NeutPFO_IDasPhoton->GetXaxis()->SetBinLabel(3,"#gamma");
@@ -466,7 +472,7 @@ void AddFourMomentumCovMatAllPFOs::init()
 	h_NeutPFO_IDasPhoton->GetXaxis()->SetBinLabel(13,"#Xi^{-}");
 	h_NeutPFO_IDasPhoton->GetXaxis()->SetBinLabel(14,"#Xi");
 	h_NeutPFO_IDasPhoton->GetXaxis()->SetBinLabel(15,"Others");
-	h_NeutPFO_IDasOther = new TH1I("Other Neutal PFOs", "; True Part. Type", 15, 0, 15);
+	h_NeutPFO_IDasOther = new TH1I("h_NeutPFO_IDasOther", "; True Part. Type", 15, 0, 15);
 	h_NeutPFO_IDasOther->GetXaxis()->SetBinLabel(1,"e^{#pm}");
 	h_NeutPFO_IDasOther->GetXaxis()->SetBinLabel(2,"#mu^{#pm}");
 	h_NeutPFO_IDasOther->GetXaxis()->SetBinLabel(3,"#gamma");
@@ -482,49 +488,49 @@ void AddFourMomentumCovMatAllPFOs::init()
 	h_NeutPFO_IDasOther->GetXaxis()->SetBinLabel(13,"#Xi^{-}");
 	h_NeutPFO_IDasOther->GetXaxis()->SetBinLabel(14,"#Xi");
 	h_NeutPFO_IDasOther->GetXaxis()->SetBinLabel(15,"Others");
-	h_NeutPFO_Mass = new TH1F("Neutral PFOs Mass", "; PFO Mass [GeV]", 200, 0.0, 10.0);
-	h_EP_photons = new TH2F("Photons", "; |#vec{p}_{PFO}|^{2} [GeV^{2}]; E_{PFO}^{2} [GeV^{2}]", 1000, 0.0, 10.0, 1000, 0.0, 10.0);
-	h_EP_NeutralHadrons = new TH2F("Neutral Hadrons", "; |#vec{p}_{PFO}|^{2} [GeV^{2}]; E_{PFO}^{2} [GeV^{2}]", 1000, 0.0, 10.0, 1000, 0.0, 10.0);
-	h_NeutPFO_Weight = new TH1F("Neutral Hadrons MCP Link Weight", "; Link weight", 100, 0.0, 1.0);
-	h_ResidualEnergy_ph = new TH1F("Photons", "; E_{REC} - E_{MCP} [GeV]", 200, -10.0, 10.0);
-	h_ResidualTheta_ph = new TH1F("Photons", "; #theta_{REC} - #theta_{MCP} [radian]", 6800, -3.4, 3.4);
-	h_ResidualPhi_ph = new TH1F("Photons", "; #phi_{REC} - #phi_{MCP} [radian]", 6800, -3.4, 3.4);
-	h_ErrorEnergy_ph = new TH1F("Photons", "; #sigma_{E} [GeV]", 1000, 0.0, 10.0);
-	h_ErrorTheta_ph = new TH1F("Photons", "; #sigma_{#theta} [radian]", 10000, 0.0, 1.0);
-	h_ErrorPhi_ph = new TH1F("Photons", "; #sigma_{#phi} [radian]", 10000, 0.0, 1.0);
-	h_NormalizedResidualEnergy_ph = new TH1F("Photons", "; (E_{REC} - E_{MCP}) / #sigma_{E}", 200, -10.0, 10.0);
-	h_NormalizedResidualTheta_ph = new TH1F("Photons", "; (#theta_{REC} - #theta_{MCP}) / #sigma_{#theta}", 200, -10.0, 10.0);
-	h_NormalizedResidualPhi_ph = new TH1F("Photons", "; (#phi_{REC} - #phi_{MCP}) / #sigma_{#phi}", 200, -10.0, 10.0);
-	h_ResidualEnergy_NH = new TH1F("Neutral Hadrons", "; E_{REC} - E_{MCP} [GeV]", 200, -10.0, 10.0);
-	h_ResidualTheta_NH = new TH1F("Neutral Hadrons", "; #theta_{REC} - #theta_{MCP} [radian]", 6800, -3.4, 3.4);
-	h_ResidualPhi_NH = new TH1F("Neutral Hadrons", "; #phi_{REC} - #phi_{MCP} [radian]", 6800, -3.4, 3.4);
-	h_ErrorEnergy_NH = new TH1F("Neutral Hadrons", "; #sigma_{E} [GeV]", 1000, 0.0, 10.0);
-	h_ErrorTheta_NH = new TH1F("Neutral Hadrons", "; #sigma_{#theta} [radian]", 10000, 0.0, 1.0);
-	h_ErrorPhi_NH = new TH1F("Neutral Hadrons", "; #sigma_{#phi} [radian]", 10000, 0.0, 1.0);
-	h_NormalizedResidualEnergy_NH = new TH1F("Neutral Hadrons", "; (E_{REC} - E_{MCP}) / #sigma_{E}", 200, -10.0, 10.0);
-	h_NormalizedResidualTheta_NH = new TH1F("Neutral Hadrons", "; (#theta_{REC} - #theta_{MCP}) / #sigma_{#theta}", 200, -10.0, 10.0);
-	h_NormalizedResidualPhi_NH = new TH1F("Neutral Hadrons", "; (#phi_{REC} - #phi_{MCP}) / #sigma_{#phi}", 200, -10.0, 10.0);
-	h_ResidualEnergy_CH = new TH1F("Charged PFOs", "; E_{REC} - E_{MCP} [GeV]", 200, -10.0, 10.0);
-	h_ResidualTheta_CH = new TH1F("Charged PFOs", "; #theta_{REC} - #theta_{MCP} [radian]", 6800, -3.4, 3.4);
-	h_ResidualPhi_CH = new TH1F("Charged PFOs", "; #phi_{REC} - #phi_{MCP} [radian]", 6800, -3.4, 3.4);
-	h_ErrorEnergy_CH = new TH1F("Charged PFOs", "; #sigma_{E} [GeV]", 1000, 0.0, 10.0);
-	h_ErrorTheta_CH = new TH1F("Charged PFOs", "; #sigma_{#theta} [radian]", 10000, 0.0, 1.0);
-	h_ErrorPhi_CH = new TH1F("Charged PFOs", "; #sigma_{#phi} [radian]", 10000, 0.0, 1.0);
-	h_NormalizedResidualEnergy_CH = new TH1F("Charged PFOs", "; (E_{REC} - E_{MCP}) / #sigma_{E}", 200, -10.0, 10.0);
-	h_NormalizedResidualTheta_CH = new TH1F("Charged PFOs", "; (#theta_{REC} - #theta_{MCP}) / #sigma_{#theta}", 200, -10.0, 10.0);
-	h_NormalizedResidualPhi_CH = new TH1F("Charged PFOs", "; (#phi_{REC} - #phi_{MCP}) / #sigma_{#phi}", 200, -10.0, 10.0);
-	h_CovMatPolar_ThetaTheta = new TH1F("Neutral Hadrons", "; #sigma_{#theta} [radian]", 10000, 0.0, 1.0);
-	h_CovMatPolar_ThetaPhi = new TH1F("Neutral Hadrons", "; #sigma_{#theta#phi} [radian^{2}]", 20000, -0.1, 0.1);
-	h_CovMatPolar_PhiPhi = new TH1F("Neutral Hadrons", "; #sigma_{#phi} [radian]", 10000, 0.0, 1.0);
-	h_CovMatPolar_ThetaMomentum = new TH1F("Neutral Hadrons", "; #sigma_{#theta|#vec{p}|} [radian.GeV]", 20000, -1.0, 1.0);
-	h_CovMatPolar_PhiMomentum = new TH1F("Neutral Hadrons", "; #sigma_{#phi|#vec{p}|} [radian.GeV]", 20000, -1.0, 1.0);
-	h_CovMatPolar_MomentumMomentum = new TH1F("Neutral Hadrons", "; #sigma_{|#vec{p}|} [GeV]", 20000, 0.0, 20.0);
-	h_CovMatPolar_ThetaEnergy = new TH1F("Neutral Hadrons", "; #sigma_{E#theta} [radian.GeV]", 10000, 0.0, 10.0);
-	h_CovMatPolar_PhiEnergy = new TH1F("Neutral Hadrons", "; #sigma_{E#phi} [radian.GeV]", 20000, -1.0, 1.0);
-	h_CovMatPolar_MomentumEnergy = new TH1F("Neutral Hadrons", "; #sigma_{E|#vec{p}|} [GeV^{2}]", 20000, -1.0, 1.0);
-	h_CovMatPolar_EnergyEnergy = new TH1F("Neutral Hadrons", "; #sigma_{E} [GeV]", 20000, 0.0, 20.0);
-	h_NH_EclusterPlusMass_Emcp = new TH2F("Neutral Hadrons", "; E_{MCP} [GeV]; E_{cluster} + m [GeV]", 1000, 0.0, 10.0, 1000, 0.0, 10.0);
-	h_NHEnergy = new TH2F("Neutral Hadrons", "; E_{MCP} [GeV]; E_{PFO} [GeV]", 1000, 0.0, 10.0, 1000, 0.0, 10.0);
+	h_NeutPFO_Mass = new TH1F("h_NeutPFO_Mass", "; PFO Mass [GeV]", 200, 0.0, 10.0);
+	h_EP_photons = new TH2F("h_EP_photons", "; |#vec{p}_{PFO}|^{2} [GeV^{2}]; E_{PFO}^{2} [GeV^{2}]", 1000, 0.0, 10.0, 1000, 0.0, 10.0);
+	h_EP_NeutralHadrons = new TH2F("h_EP_NeutralHadrons", "; |#vec{p}_{PFO}|^{2} [GeV^{2}]; E_{PFO}^{2} [GeV^{2}]", 1000, 0.0, 10.0, 1000, 0.0, 10.0);
+	h_NeutPFO_Weight = new TH1F("h_NeutPFO_Weight", "; Link weight", 100, 0.0, 1.0);
+	h_ResidualEnergy_ph = new TH1F("h_ResidualEnergy_ph", "; E_{REC} - E_{MCP} [GeV]", 200, -10.0, 10.0);
+	h_ResidualTheta_ph = new TH1F("h_ResidualTheta_ph", "; #theta_{REC} - #theta_{MCP} [radian]", 6800, -3.4, 3.4);
+	h_ResidualPhi_ph = new TH1F("h_ResidualPhi_ph", "; #phi_{REC} - #phi_{MCP} [radian]", 6800, -3.4, 3.4);
+	h_ErrorEnergy_ph = new TH1F("h_ErrorEnergy_ph", "; #sigma_{E} [GeV]", 1000, 0.0, 10.0);
+	h_ErrorTheta_ph = new TH1F("h_ErrorTheta_ph", "; #sigma_{#theta} [radian]", 10000, 0.0, 1.0);
+	h_ErrorPhi_ph = new TH1F("h_ErrorPhi_ph", "; #sigma_{#phi} [radian]", 10000, 0.0, 1.0);
+	h_NormalizedResidualEnergy_ph = new TH1F("h_NormalizedResidualEnergy_ph", "; (E_{REC} - E_{MCP}) / #sigma_{E}", 200, -10.0, 10.0);
+	h_NormalizedResidualTheta_ph = new TH1F("h_NormalizedResidualTheta_ph", "; (#theta_{REC} - #theta_{MCP}) / #sigma_{#theta}", 200, -10.0, 10.0);
+	h_NormalizedResidualPhi_ph = new TH1F("h_NormalizedResidualPhi_ph", "; (#phi_{REC} - #phi_{MCP}) / #sigma_{#phi}", 200, -10.0, 10.0);
+	h_ResidualEnergy_NH = new TH1F("h_ResidualEnergy_NH", "; E_{REC} - E_{MCP} [GeV]", 200, -10.0, 10.0);
+	h_ResidualTheta_NH = new TH1F("h_ResidualTheta_NH", "; #theta_{REC} - #theta_{MCP} [radian]", 6800, -3.4, 3.4);
+	h_ResidualPhi_NH = new TH1F("h_ResidualPhi_NH", "; #phi_{REC} - #phi_{MCP} [radian]", 6800, -3.4, 3.4);
+	h_ErrorEnergy_NH = new TH1F("h_ErrorEnergy_NH", "; #sigma_{E} [GeV]", 1000, 0.0, 10.0);
+	h_ErrorTheta_NH = new TH1F("h_ErrorTheta_NH", "; #sigma_{#theta} [radian]", 10000, 0.0, 1.0);
+	h_ErrorPhi_NH = new TH1F("h_ErrorPhi_NH", "; #sigma_{#phi} [radian]", 10000, 0.0, 1.0);
+	h_NormalizedResidualEnergy_NH = new TH1F("h_NormalizedResidualEnergy_NH", "; (E_{REC} - E_{MCP}) / #sigma_{E}", 200, -10.0, 10.0);
+	h_NormalizedResidualTheta_NH = new TH1F("h_NormalizedResidualTheta_NH", "; (#theta_{REC} - #theta_{MCP}) / #sigma_{#theta}", 200, -10.0, 10.0);
+	h_NormalizedResidualPhi_NH = new TH1F("h_NormalizedResidualPhi_NH", "; (#phi_{REC} - #phi_{MCP}) / #sigma_{#phi}", 200, -10.0, 10.0);
+	h_ResidualEnergy_CH = new TH1F("h_ResidualEnergy_CH", "; E_{REC} - E_{MCP} [GeV]", 200, -10.0, 10.0);
+	h_ResidualTheta_CH = new TH1F("h_ResidualTheta_CH", "; #theta_{REC} - #theta_{MCP} [radian]", 6800, -3.4, 3.4);
+	h_ResidualPhi_CH = new TH1F("h_ResidualPhi_CH", "; #phi_{REC} - #phi_{MCP} [radian]", 6800, -3.4, 3.4);
+	h_ErrorEnergy_CH = new TH1F("h_ErrorEnergy_CH", "; #sigma_{E} [GeV]", 1000, 0.0, 10.0);
+	h_ErrorTheta_CH = new TH1F("h_ErrorTheta_CH", "; #sigma_{#theta} [radian]", 10000, 0.0, 1.0);
+	h_ErrorPhi_CH = new TH1F("h_ErrorPhi_CH", "; #sigma_{#phi} [radian]", 10000, 0.0, 1.0);
+	h_NormalizedResidualEnergy_CH = new TH1F("h_NormalizedResidualEnergy_CH", "; (E_{REC} - E_{MCP}) / #sigma_{E}", 200, -10.0, 10.0);
+	h_NormalizedResidualTheta_CH = new TH1F("h_NormalizedResidualTheta_CH", "; (#theta_{REC} - #theta_{MCP}) / #sigma_{#theta}", 200, -10.0, 10.0);
+	h_NormalizedResidualPhi_CH = new TH1F("h_NormalizedResidualPhi_CH", "; (#phi_{REC} - #phi_{MCP}) / #sigma_{#phi}", 200, -10.0, 10.0);
+	h_CovMatPolar_ThetaTheta = new TH1F("h_CovMatPolar_ThetaTheta", "; #sigma_{#theta} [radian]", 10000, 0.0, 1.0);
+	h_CovMatPolar_ThetaPhi = new TH1F("h_CovMatPolar_ThetaPhi", "; #sigma_{#theta#phi} [radian^{2}]", 20000, -0.1, 0.1);
+	h_CovMatPolar_PhiPhi = new TH1F("h_CovMatPolar_PhiPhi", "; #sigma_{#phi} [radian]", 10000, 0.0, 1.0);
+	h_CovMatPolar_ThetaMomentum = new TH1F("h_CovMatPolar_ThetaMomentum", "; #sigma_{#theta|#vec{p}|} [radian.GeV]", 20000, -1.0, 1.0);
+	h_CovMatPolar_PhiMomentum = new TH1F("h_CovMatPolar_PhiMomentum", "; #sigma_{#phi|#vec{p}|} [radian.GeV]", 20000, -1.0, 1.0);
+	h_CovMatPolar_MomentumMomentum = new TH1F("h_CovMatPolar_MomentumMomentum", "; #sigma_{|#vec{p}|} [GeV]", 20000, 0.0, 20.0);
+	h_CovMatPolar_ThetaEnergy = new TH1F("h_CovMatPolar_ThetaEnergy", "; #sigma_{E#theta} [radian.GeV]", 10000, 0.0, 10.0);
+	h_CovMatPolar_PhiEnergy = new TH1F("h_CovMatPolar_PhiEnergy", "; #sigma_{E#phi} [radian.GeV]", 20000, -1.0, 1.0);
+	h_CovMatPolar_MomentumEnergy = new TH1F("h_CovMatPolar_MomentumEnergy", "; #sigma_{E|#vec{p}|} [GeV^{2}]", 20000, -1.0, 1.0);
+	h_CovMatPolar_EnergyEnergy = new TH1F("h_CovMatPolar_EnergyEnergy", "; #sigma_{E} [GeV]", 20000, 0.0, 20.0);
+	h_NH_EclusterPlusMass_Emcp = new TH2F("h_NH_EclusterPlusMass_Emcp", "; E_{MCP} [GeV]; E_{cluster} + m [GeV]", 1000, 0.0, 10.0, 1000, 0.0, 10.0);
+	h_NHEnergy = new TH2F("h_NHEnergy", "; E_{MCP} [GeV]; E_{PFO} [GeV]", 1000, 0.0, 10.0, 1000, 0.0, 10.0);
 
 }
 
@@ -733,8 +739,8 @@ void AddFourMomentumCovMatAllPFOs::processEvent( EVENT::LCEvent *pLCEvent )
 						pfoE	= inputPFO->getEnergy();
 					}
 
-//					std::vector<float> clusterDirectionError = ( inputPFO->getClusters()[0] )->getDirectionError();
 					std::vector<float> clusterPositionError = ( inputPFO->getClusters()[0] )->getPositionError();
+					PFOCoordinateError = this->getClusterDirectionError( clusterPosition , clusterPositionError );
 					float clusterEnergyError= ( inputPFO->getClusters()[0] )->getEnergyError();
 					streamlog_out(DEBUG) << "cluster / PFO Energy : " << clusterEnergy << " / " << pfoE << std::endl;
 					h_clusterE_pfoE->Fill( clusterEnergy , pfoE );
@@ -743,12 +749,36 @@ void AddFourMomentumCovMatAllPFOs::processEvent( EVENT::LCEvent *pLCEvent )
 					m_RecoEnergy.push_back( pfoFourMomentum.E() );
 					m_RecoTheta.push_back( pfoFourMomentum.Theta() );
 					m_RecoPhi.push_back( pfoFourMomentum.Phi() );
-					if ( m_updateNormalNeutrals ) outputCovMatrix	= this->UpdateNeutralPFOCovMat( clusterPosition , pfoEnergy , pfoMass , clusterPositionError , clusterEnergyError );
+					float scaleFactor = 1.0;
 					if ( m_scaleAngularUncertainty )
 					{
-						for ( unsigned int i_cov = 0 ; i_cov < 6 ; ++i_cov )
+						if ( inputPFO->getType() == 22 )
 						{
-							outputCovMatrix[ i_cov ] = m_AngularUncertaintyScaleFactor * outputCovMatrix[ i_cov ];
+							scaleFactor = pow( m_AngularUncertaintyScaleFactor_Ph , 2 );
+						}
+						else
+						{
+							scaleFactor = pow( m_AngularUncertaintyScaleFactor_NH , 2 );
+						}
+					}
+						
+					if ( m_updateNormalNeutrals )
+					{
+						if ( m_useClusterPositionError )
+						{
+							for ( unsigned int i_cov = 0 ; i_cov < 6 ; ++i_cov )
+							{
+								clusterPositionError[ i_cov ] = scaleFactor * clusterPositionError[ i_cov ];
+							}
+							outputCovMatrix = this->UpdateNeutralPFOCovMatCartesian( clusterPosition , pfoEnergy , pfoMass , clusterPositionError , clusterEnergyError );
+						}
+						else
+						{
+							for ( unsigned int i_cov = 0 ; i_cov < 6 ; ++i_cov )
+							{
+								PFOCoordinateError[ i_cov ] = scaleFactor * PFOCoordinateError[ i_cov ];
+							}
+							outputCovMatrix = this->UpdateNeutralPFOCovMatPolar( pfoFourMomentum.Theta() , pfoFourMomentum.Phi() , pfoFourMomentum.E() , pfoFourMomentum.Mag() , PFOCoordinateError , clusterEnergyError );
 						}
 					}
 					PFOCovMatPolar = this->getPFOCovMatPolarCoordinate( pfoFourMomentum , outputCovMatrix );
@@ -786,7 +816,6 @@ void AddFourMomentumCovMatAllPFOs::processEvent( EVENT::LCEvent *pLCEvent )
 					{
 						PFOResidual = this->getPFOResidual( pfoFourMomentum , mcpFourMomentum );
 
-						PFOCoordinateError = this->getClusterDirectionError( clusterPosition , clusterPositionError );
 						float EnergyError;
 						float ThetaError;
 						float PhiError;
@@ -1329,7 +1358,7 @@ TLorentzVector AddFourMomentumCovMatAllPFOs::getLinkedMCP( EVENT::LCEvent *pLCEv
 
 }
 
-std::vector<float> AddFourMomentumCovMatAllPFOs::UpdateNeutralPFOCovMat( TVector3 clusterPosition , float pfoEc , float pfoMass , std::vector<float> clusterPositionError , float clusterEnergyError )
+std::vector<float> AddFourMomentumCovMatAllPFOs::UpdateNeutralPFOCovMatCartesian( TVector3 clusterPosition , float pfoEc , float pfoMass , std::vector<float> clusterPositionError , float clusterEnergyError )
 {
 
 //	Obtain covariance matrix on (px,py,pz,E) from the
@@ -1427,18 +1456,6 @@ std::vector<float> AddFourMomentumCovMatAllPFOs::UpdateNeutralPFOCovMat( TVector
 		-pfoP * pfoZ * pfoX / pfoR3				,	-pfoP * pfoZ * pfoY / pfoR3				,	pfoP * ( pfoR2 - pfoZ2 ) / pfoR3			,	0			,
 		derivative_coeff * pfoE * pfoX / ( pfoP * pfoR )	,	derivative_coeff * pfoE * pfoY / ( pfoP * pfoR )	,	derivative_coeff * pfoE * pfoZ / ( pfoP * pfoR )	,	derivative_coeff
 	};
-/*	
-	streamlog_out(MESSAGE) << "******************************************************************************************" << std::endl;
-	streamlog_out(DEBUG) << "Jacobian array formed by rows" << std::endl;
-	streamlog_out(MESSAGE) << "Jacobain CovMat(x,y,z,E) -> CovMat (Px,Py,Pz,E):" << std::endl;
-	streamlog_out(MESSAGE) << "{" << std::endl;
-	streamlog_out(MESSAGE) << "	" << jacobian_by_rows[ 0 ] << "	,	" << jacobian_by_rows[ 1 ] << "	,	" << jacobian_by_rows[ 2 ] << "	,	" << jacobian_by_rows[ 3 ] << std::endl;
-	streamlog_out(MESSAGE) << "	" << jacobian_by_rows[ 4 ] << "	,	" << jacobian_by_rows[ 5 ] << "	,	" << jacobian_by_rows[ 6 ] << "	,	" << jacobian_by_rows[ 7 ] << std::endl;
-	streamlog_out(MESSAGE) << "	" << jacobian_by_rows[ 8 ] << "	,	" << jacobian_by_rows[ 9 ] << "	,	" << jacobian_by_rows[ 10 ] << "	,	" << jacobian_by_rows[ 11 ] << std::endl;
-	streamlog_out(MESSAGE) << "	" << jacobian_by_rows[ 12 ] << "	,	" << jacobian_by_rows[ 13 ] << "	,	" << jacobian_by_rows[ 14 ] << "	,	" << jacobian_by_rows[ 15 ] << std::endl;
-	streamlog_out(MESSAGE) << "}" << std::endl;
-	streamlog_out(MESSAGE) << "******************************************************************************************" << std::endl;
-*/
 
 //	construct the Jacobian using previous array ("F" if filling by columns, "C" if filling by rows, $ROOTSYS/math/matrix/src/TMatrixT.cxx)
 	TMatrixD jacobian(rows,columns, jacobian_by_rows, "C");
@@ -1452,17 +1469,7 @@ std::vector<float> AddFourMomentumCovMatAllPFOs::UpdateNeutralPFOCovMat( TVector
 				SigmaXZ		,	SigmaYZ		,	SigmaZ2		,	0	,
 				0		,	0		,	0		,	SigmaE2
 			};
-/*
-	streamlog_out(DEBUG) << "cluster covariance matrix array formed by rows" << std::endl;
-	streamlog_out(MESSAGE) << "CovMat(x,y,z,E):" << std::endl;
-	streamlog_out(MESSAGE) << "{" << std::endl;
-	streamlog_out(MESSAGE) << "	" << cluster_cov_matrix_by_rows[ 0 ] << "	,	" << cluster_cov_matrix_by_rows[ 1 ] << "	,	" << cluster_cov_matrix_by_rows[ 2 ] << "	,	" << cluster_cov_matrix_by_rows[ 3 ] << std::endl;
-	streamlog_out(MESSAGE) << "	" << cluster_cov_matrix_by_rows[ 4 ] << "	,	" << cluster_cov_matrix_by_rows[ 5 ] << "	,	" << cluster_cov_matrix_by_rows[ 6 ] << "	,	" << cluster_cov_matrix_by_rows[ 7 ] << std::endl;
-	streamlog_out(MESSAGE) << "	" << cluster_cov_matrix_by_rows[ 8 ] << "	,	" << cluster_cov_matrix_by_rows[ 9 ] << "	,	" << cluster_cov_matrix_by_rows[ 10 ] << "	,	" << cluster_cov_matrix_by_rows[ 11 ] << std::endl;
-	streamlog_out(MESSAGE) << "	" << cluster_cov_matrix_by_rows[ 12 ] << "	,	" << cluster_cov_matrix_by_rows[ 13 ] << "	,	" << cluster_cov_matrix_by_rows[ 14 ] << "	,	" << cluster_cov_matrix_by_rows[ 15 ] << std::endl;
-	streamlog_out(MESSAGE) << "}" << std::endl;
-	streamlog_out(MESSAGE) << "******************************************************************************************" << std::endl;
-*/
+
 	TMatrixD covMatrix_cluster(rows,rows, cluster_cov_matrix_by_rows, "C");
 	streamlog_out(DEBUG) << "cluster covariance matrix array converted to cluster covariance matrix" << std::endl;
 
@@ -1471,17 +1478,7 @@ std::vector<float> AddFourMomentumCovMatAllPFOs::UpdateNeutralPFOCovMat( TVector
 					covMatrix_cluster) ,
 					jacobian
 					);
-/*
-	streamlog_out(DEBUG) << "cluster covariance matrix array converted to FourMomentumCovariance matrix" << std::endl;
-	streamlog_out(MESSAGE) << "CovMat(x,y,z,E):" << std::endl;
-	streamlog_out(MESSAGE) << "{" << std::endl;
-	streamlog_out(MESSAGE) << "	" << covMatrixMomenta(0,0) << "	,	" << covMatrixMomenta(0,1) << "	,	" << covMatrixMomenta(0,2) << "	,	" << covMatrixMomenta(0,3) << std::endl;
-	streamlog_out(MESSAGE) << "	" << covMatrixMomenta(1,0) << "	,	" << covMatrixMomenta(1,1) << "	,	" << covMatrixMomenta(1,2) << "	,	" << covMatrixMomenta(1,3) << std::endl;
-	streamlog_out(MESSAGE) << "	" << covMatrixMomenta(2,0) << "	,	" << covMatrixMomenta(2,1) << "	,	" << covMatrixMomenta(2,2) << "	,	" << covMatrixMomenta(2,3) << std::endl;
-	streamlog_out(MESSAGE) << "	" << covMatrixMomenta(3,0) << "	,	" << covMatrixMomenta(3,1) << "	,	" << covMatrixMomenta(3,2) << "	,	" << covMatrixMomenta(3,3) << std::endl;
-	streamlog_out(MESSAGE) << "}" << std::endl;
-	streamlog_out(MESSAGE) << "******************************************************************************************" << std::endl;
-*/
+
 	covP.push_back( covMatrixMomenta(0,0) ); // x-x
 	covP.push_back( covMatrixMomenta(1,0) ); // y-x
 	covP.push_back( covMatrixMomenta(1,1) ); // y-y
@@ -1498,6 +1495,110 @@ std::vector<float> AddFourMomentumCovMatAllPFOs::UpdateNeutralPFOCovMat( TVector
 
 }
 
+
+std::vector<float> AddFourMomentumCovMatAllPFOs::UpdateNeutralPFOCovMatPolar( float pfoTheta , float pfoPhi , float pfoEnergy , float pfoMass , std::vector<float> PFOCoordinateError , float clusterEnergyError )
+{
+
+//	Obtain covariance matrix on (px,py,pz,E) from the
+//	covariance matrix on PFO parameters in polar coordinate system (Theta,Phi,E,m).
+//	=> |p| = sqrt( E^2 - m^2 )	;	Px = |P|.Sin(Theta).Cos(Phi)	;	Py = |P|.Sin(Theta).Sin(Phi)	;	Pz = |P|.Cos(Theta)
+//	define the jacobian as the 4x4 matrix:
+//
+//
+//
+//			Dpx/DTheta		Dpy/DTheta		Dpz/DTheta		DE/DTheta
+//
+//	J =		Dpx/DPhi		Dpy/DPhi		Dpz/DPhi		DE/DPhi
+//
+//			Dpx/DE			Dpy/DE			Dpz/DE			DE/DE
+//
+//
+//
+//
+//
+//			|P|.Cos(Theta).Cos(Phi)		|P|.Cos(Theta).Sin(Phi)		-|P|.Sin(Theta)		0
+//
+//	J =		-|P|.Sin(Theta).Sin(Phi)		|P|.Sin(Theta).Cos(Phi)		0				0
+//
+//			E.Sin(Theta).Cos(Phi)/|P|		E.Sin(Theta).Sin(Phi)/|P|		E.Cos(Theta)/|P|		1
+//
+//
+//
+//
+//	CovMatrix elements in terms of cluster position error and cluster energy error:
+//
+//			Theta.Theta			Theta.Phi			Theta.E
+//
+//	Cov =		Phi.Theta			Phi.Phi			Phi.E
+//
+//			E.Theta			E.Phi				E.E
+//
+//
+//
+
+	const int rows			= 3; // n rows jacobian
+	const int columns		= 4; // n columns jacobian
+	const int kspace_time_dim	= 4;
+
+	TMatrixD covMatrixMomenta(kspace_time_dim,kspace_time_dim);
+	std::vector<float> covP;
+
+//	pfoMass			= 0.0;
+
+	float pfoP		=	sqrt( pow( pfoEnergy , 2 ) - pow( pfoMass , 2 ) );
+	float pfoE		=	pfoEnergy;
+
+	float SigmaTheta2	=	PFOCoordinateError[ 2 ];
+	float SigmaThetaPhi	=	PFOCoordinateError[ 4 ];
+	float SigmaPhi2	=	PFOCoordinateError[ 5 ];
+	float SigmaE2		=	pow( clusterEnergyError , 2 );
+
+	streamlog_out(DEBUG) << "Cluster information obtained" << std::endl;
+
+//	Define array with jacobian matrix elements by rows
+	double jacobian_by_rows[rows*columns] =
+	{
+		pfoP * cos( pfoTheta ) * cos( pfoPhi )		,	pfoP * cos( pfoTheta ) * sin( pfoPhi )		,	pfoP * sin( pfoTheta )				,	0			,
+		-pfoP * sin( pfoTheta ) * sin( pfoPhi )		,	pfoP * sin( pfoTheta ) * cos( pfoPhi )		,	0						,	0			,
+		pfoE * sin( pfoTheta ) * cos( pfoPhi ) / pfoP		,	pfoE * sin( pfoTheta ) * sin( pfoPhi ) / pfoP		,	pfoE * cos( pfoTheta )	/ pfoP			,	1			,
+	};
+
+//	construct the Jacobian using previous array ("F" if filling by columns, "C" if filling by rows, $ROOTSYS/math/matrix/src/TMatrixT.cxx)
+	TMatrixD jacobian(rows,columns, jacobian_by_rows, "C");
+	streamlog_out(DEBUG) << "Jacobian array converted to Jacobian matrix" << std::endl;
+
+//	cluster covariance matrix by rows
+	double cluster_cov_matrix_by_rows[rows*rows] =
+			{
+				SigmaTheta2		,	SigmaThetaPhi		,	0	,
+				SigmaThetaPhi		,	SigmaPhi2		,	0	,
+				0			,	0			,	SigmaE2
+			};
+
+	TMatrixD covMatrix_cluster(rows,rows, cluster_cov_matrix_by_rows, "C");
+	streamlog_out(DEBUG) << "cluster covariance matrix array converted to cluster covariance matrix" << std::endl;
+
+	covMatrixMomenta.Mult( TMatrixD( jacobian ,
+					TMatrixD::kTransposeMult ,
+					covMatrix_cluster) ,
+					jacobian
+					);
+
+	covP.push_back( covMatrixMomenta(0,0) ); // x-x
+	covP.push_back( covMatrixMomenta(1,0) ); // y-x
+	covP.push_back( covMatrixMomenta(1,1) ); // y-y
+	covP.push_back( covMatrixMomenta(2,0) ); // z-x
+	covP.push_back( covMatrixMomenta(2,1) ); // z-y
+	covP.push_back( covMatrixMomenta(2,2) ); // z-z
+	covP.push_back( covMatrixMomenta(3,0) ); // e-x
+	covP.push_back( covMatrixMomenta(3,1) ); // e-y
+	covP.push_back( covMatrixMomenta(3,2) ); // e-z
+	covP.push_back( covMatrixMomenta(3,3) ); // e-e
+	streamlog_out(DEBUG) << "FourMomentumCovarianceMatrix Filled succesfully" << std::endl;
+
+	return covP;
+
+}
 
 std::vector<float> AddFourMomentumCovMatAllPFOs::getClusterDirectionError( TVector3 clusterPosition , std::vector<float> clusterPositionError )
 {
